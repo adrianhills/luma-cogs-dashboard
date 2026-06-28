@@ -136,7 +136,7 @@
         <h3>Own model vs. third-party API</h3>
         <p class="sub">Ray (in-house — carries training amortization) vs. Veo / Kling / Seedance (pass-through API spend is COGS too)</p>
         <table id="sourcingTable"></table>
-        <div class="callout"><b>Why it matters:</b> in-house Ray is cheaper per clip <i>once training is amortized</i>; API models have zero training cost but a hard per-call floor you can't optimize away. The job is steering the mix, not eliminating either.</div>
+        <div class="callout"><b>The margin reality:</b> Ray (own) clears a <b>healthy ~55%</b>; third-party API generations run <b>thin (~8–11%)</b> — you're largely passing the vendor's fee through and can't engineer it away. The economic case for steering volume onto Ray as it matures, and for pricing API-served clips to protect margin.</div>
       </div>
     </div>
   </section>
@@ -233,24 +233,24 @@ const surfaces = [
   {name:'Research / training', val:534000, color:'var(--research)'},
 ];
 
-// own vs api sourcing
+// own vs api sourcing — Ray healthy margin; third-party API thin (mostly vendor pass-through)
 const sourcing = [
-  {model:'Ray (in-house)', kind:'own', share:68, costClip:0.071, trained:true, note:'Training amortized into cost'},
-  {model:'Veo (API)', kind:'api', share:14, costClip:0.34, trained:false, note:'Pass-through per-call floor'},
-  {model:'Kling (API)', kind:'api', share:11, costClip:0.21, trained:false, note:'Overflow / capability gap'},
-  {model:'Seedance (API)', kind:'api', share:7, costClip:0.16, trained:false, note:'Burst overflow'},
+  {model:'Ray (in-house)', kind:'own', share:68, costClip:0.27, margin:55, note:'Healthy — training amortized'},
+  {model:'Veo (API)', kind:'api', share:14, costClip:0.86, margin:8, note:'Thin — vendor fee pass-through'},
+  {model:'Kling (API)', kind:'api', share:11, costClip:0.58, margin:11, note:'Thin — overflow / capability gap'},
+  {model:'Seedance (API)', kind:'api', share:7, costClip:0.44, margin:10, note:'Thin — burst overflow'},
 ];
 
 // cost per generation by model x resolution
 // creditsPerClip = customer credits charged; revenue uses blended $/credit
 const BLENDED_CREDIT_PRICE = 0.0026; // $/credit, blended across tiers
 const cpg = [
-  {model:'Ray', kind:'own', res:'540p · 5s', credits:60,  gpuCost:0.038},
-  {model:'Ray', kind:'own', res:'720p · 5s', credits:120, gpuCost:0.071},
-  {model:'Ray', kind:'own', res:'1080p · 5s',credits:230, gpuCost:0.142},
-  {model:'Ray', kind:'own', res:'4K · 5s',    credits:760, gpuCost:0.515},
-  {model:'Veo', kind:'api', res:'1080p · 5s', credits:340, gpuCost:0.340},
-  {model:'Kling',kind:'api',res:'1080p · 5s', credits:250, gpuCost:0.210},
+  {model:'Ray', kind:'own', res:'540p · 5s', credits:60,  gpuCost:0.058},
+  {model:'Ray', kind:'own', res:'720p · 5s', credits:120, gpuCost:0.125},
+  {model:'Ray', kind:'own', res:'1080p · 5s',credits:230, gpuCost:0.260},
+  {model:'Ray', kind:'own', res:'4K · 5s',    credits:760, gpuCost:0.920},
+  {model:'Veo', kind:'api', res:'1080p · 5s', credits:360, gpuCost:0.860},
+  {model:'Kling',kind:'api',res:'1080p · 5s', credits:250, gpuCost:0.580},
 ];
 
 // plan tiers (real Luma Agents pricing)
@@ -273,7 +273,7 @@ const trend = [0.094,0.092,0.091,0.089,0.103,0.099,0.096,0.094,0.092,0.081,0.079
 const releases = [{i:4,label:'Ray v3 (quality↑, cost↑)'},{i:9,label:'Few-step distill'}];
 
 // fully-loaded uplift factors
-const LOADED = {trainingAmort:0.42, idleWaste:0.18}; // adds to marginal cost for fully-loaded lens
+const LOADED = {trainingAmort:0.30, idleWaste:0.12}; // adds to marginal cost for fully-loaded lens
 
 let lens = 'marginal';
 
@@ -289,8 +289,8 @@ function renderLensNote(){
 function renderKPIs(){
   const m = loadedMult();
   const totalSpend = surfaces.reduce((a,s)=>a+s.val,0);
-  const blendedCost = 0.082*m;
-  const blendedRev = 0.118;
+  const blendedCost = 0.108*m;
+  const blendedRev = 0.182;
   const margin = (blendedRev-blendedCost)/blendedRev*100;
   const fleetUtil = 60; const alloc = 100;
   const apiShare = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share,0);
@@ -316,13 +316,15 @@ function renderSurface(){
 }
 
 function renderSourcing(){
-  const rows = sourcing.map(s=>`
-    <tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
+  const rows = sourcing.map(s=>{
+    const mcls = s.margin>40?'good':s.margin>20?'warn':'bad';
+    return `<tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
     <td class="num">${s.share}%</td>
     <td class="num">${fmtC(s.costClip*(s.kind==='own'?loadedMult():1))}</td>
-    <td class="src">${s.note}</td></tr>`).join('');
+    <td class="num"><span class="pill ${mcls}">${s.margin}%</span></td>
+    <td class="src">${s.note}</td></tr>`;}).join('');
   document.getElementById('sourcingTable').innerHTML =
-    `<tr><th>Model</th><th class="num">% of gens</th><th class="num">Cost / clip</th><th>Note</th></tr>${rows}`;
+    `<tr><th>Model</th><th class="num">% of gens</th><th class="num">Cost / clip</th><th class="num">Margin</th><th>Note</th></tr>${rows}`;
 }
 
 function renderCPG(){
@@ -422,8 +424,8 @@ function runSim(){
   const apiCost = 0.20*resPrem; // distillation doesn't help pass-through API
   const costClip = ownCost*(1-apiShare) + apiCost*apiShare;
   const cogs = gensMo*costClip;
-  // revenue: customers pay more credits for API/4K clips, so revenue scales with mix AND resolution
-  const revClip = (0.118*(1-apiShare) + 0.27*apiShare)*resPrem;
+  // revenue: API clips bill more credits but margin stays thin (vendor takes most of it)
+  const revClip = (0.118*(1-apiShare) + 0.22*apiShare)*resPrem;
   const revenue = gensMo*revClip;
   const margin = (revenue-cogs)/revenue*100;
   const out=[
