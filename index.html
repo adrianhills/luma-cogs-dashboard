@@ -136,7 +136,7 @@
         <h3>Own model vs. third-party API</h3>
         <p class="sub">Ray (in-house — carries training amortization) vs. Veo / Kling / Seedance (pass-through API spend is COGS too)</p>
         <table id="sourcingTable"></table>
-        <div class="callout"><b>The margin reality:</b> Ray (own) clears a <b>healthy ~55%</b>; third-party API generations run <b>thin (~8–11%)</b> — you're largely passing the vendor's fee through and can't engineer it away. The economic case for steering volume onto Ray as it matures, and for pricing API-served clips to protect margin.</div>
+        <div class="callout"><b>The margin reality:</b> Ray (own) clears a <b>healthy ~56%</b> (marginal lens); third-party API generations run <b>thin (~8–11%)</b> — you're largely passing the vendor's fee through and can't engineer it away. API is <b>~18% of generations but ~51% of compute spend</b>: the case for steering volume onto Ray as it matures, and pricing API-served clips to protect margin.</div>
       </div>
     </div>
   </section>
@@ -189,7 +189,7 @@
         <div class="controls">
           <div class="control">
             <label>Daily active creators <span class="cv" id="v_dau"></span></label>
-            <input type="range" id="dau" min="5000" max="500000" step="5000" value="80000">
+            <input type="range" id="dau" min="5000" max="500000" step="5000" value="40000">
           </div>
           <div class="control">
             <label>Generations / creator / day <span class="cv" id="v_gpu"></span></label>
@@ -197,7 +197,7 @@
           </div>
           <div class="control">
             <label>Share routed to API models (Veo/Kling) <span class="cv" id="v_api"></span></label>
-            <input type="range" id="api" min="0" max="100" step="5" value="25">
+            <input type="range" id="api" min="0" max="100" step="1" value="18">
           </div>
           <div class="control">
             <label>Avg resolution / length premium <span class="cv" id="v_res"></span></label>
@@ -226,19 +226,21 @@ const fmt$ = n => (n<0?'-$':'$')+(a=>a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3
 const fmtPct = n => n.toFixed(0)+'%';
 const fmtC = n => '$'+n.toFixed(3);
 
-// surfaces: monthly compute spend ($)
+// surfaces: monthly compute spend ($). Serving (DM + Agents) = 1.70M ties to the
+// simulator default COGS; Research/training is separate (not per-generation).
 const surfaces = [
-  {name:'Dream Machine (consumer)', val:412000, color:'var(--consumer)'},
-  {name:'Luma Agents + API (enterprise)', val:286000, color:'var(--enterprise)'},
-  {name:'Research / training', val:534000, color:'var(--research)'},
+  {name:'Dream Machine (consumer)', val:1000000, color:'var(--consumer)'},
+  {name:'Luma Agents + API (enterprise)', val:700000, color:'var(--enterprise)'},
+  {name:'Research / training', val:1000000, color:'var(--research)'},
 ];
 
-// own vs api sourcing — Ray healthy margin; third-party API thin (mostly vendor pass-through)
+// own vs api sourcing — share = % of generations; costClip/revClip drive margin so it
+// responds to the marginal/fully-loaded toggle. Ray healthy; third-party API thin.
 const sourcing = [
-  {model:'Ray (in-house)', kind:'own', share:68, costClip:0.27, margin:55, note:'Healthy — training amortized'},
-  {model:'Veo (API)', kind:'api', share:14, costClip:0.86, margin:8, note:'Thin — vendor fee pass-through'},
-  {model:'Kling (API)', kind:'api', share:11, costClip:0.58, margin:11, note:'Thin — overflow / capability gap'},
-  {model:'Seedance (API)', kind:'api', share:7, costClip:0.44, margin:10, note:'Thin — burst overflow'},
+  {model:'Ray (in-house)', kind:'own', share:82, costClip:0.14, revClip:0.32,  note:'Healthy — training amortized'},
+  {model:'Veo (API)',      kind:'api', share:8,  costClip:0.86, revClip:0.935, note:'Thin — vendor fee pass-through'},
+  {model:'Kling (API)',    kind:'api', share:6,  costClip:0.58, revClip:0.652, note:'Thin — overflow / capability gap'},
+  {model:'Seedance (API)', kind:'api', share:4,  costClip:0.44, revClip:0.489, note:'Thin — burst overflow'},
 ];
 
 // cost per generation by model x resolution
@@ -259,7 +261,10 @@ const tiers = [
   {name:'Pro',   price:90,  credits:40000,  typicalUse:0.50, heavyUse:1.0},
   {name:'Ultra', price:300, credits:150000, typicalUse:0.45, heavyUse:1.0},
 ];
-const COGS_PER_CREDIT = 0.00190; // illustrative blended GPU cost per credit served
+// Typical usage skews to cheap own-model low-res gens; power users skew to expensive
+// 4K / API gens, where COGS per credit is higher — which is what tips them negative.
+const COGS_PER_CREDIT = 0.00190;       // typical (own-model, lower-res mix)
+const COGS_PER_CREDIT_HEAVY = 0.00240; // power user (4K / API-skewed mix)
 
 // utilization: claimed vs realized
 const util = [
@@ -268,8 +273,8 @@ const util = [
   {pool:'Experimentation / shared', claimed:100, realized:38, color:'var(--enterprise)'},
 ];
 
-// cost-per-gen trend (12 wks) + release markers
-const trend = [0.094,0.092,0.091,0.089,0.103,0.099,0.096,0.094,0.092,0.081,0.079,0.078];
+// cost-per-gen trend (12 wks, blended $/gen — same scale as the KPI) + release markers
+const trend = [0.258,0.255,0.252,0.249,0.275,0.268,0.260,0.253,0.247,0.242,0.239,0.236];
 const releases = [{i:4,label:'Ray v3 (quality↑, cost↑)'},{i:9,label:'Few-step distill'}];
 
 // fully-loaded uplift factors
@@ -289,18 +294,23 @@ function renderLensNote(){
 function renderKPIs(){
   const m = loadedMult();
   const totalSpend = surfaces.reduce((a,s)=>a+s.val,0);
-  const blendedCost = 0.108*m;
-  const blendedRev = 0.182;
+  // derive blended economics from the sourcing mix so every panel ties out.
+  // fully-loaded uplift applies to own-model cost only (training has no API analog).
+  const blendedCost = sourcing.reduce((a,s)=>a + s.share/100 * s.costClip * (s.kind==='own'?m:1), 0);
+  const blendedRev  = sourcing.reduce((a,s)=>a + s.share/100 * s.revClip, 0);
   const margin = (blendedRev-blendedCost)/blendedRev*100;
   const fleetUtil = 60; const alloc = 100;
-  const apiShare = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share,0);
+  const apiGenShare = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share,0);
+  const apiSpend = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share/100*s.costClip,0);
+  const totSpendPerGen = sourcing.reduce((a,s)=>a+s.share/100*s.costClip,0);
+  const apiSpendShare = apiSpend/totSpendPerGen*100;
   const k = [
-    {label:'Monthly compute spend', val:fmt$(totalSpend*(lens==='loaded'?1:1)), delta:'+9% MoM', cls:'up'},
+    {label:'Monthly compute spend', val:fmt$(totalSpend), delta:'+9% MoM', cls:'up'},
     {label:'Blended cost / generation', val:fmtC(blendedCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat'},
-    {label:'Gross margin / generation', val:fmtPct(margin), delta: margin>40?'healthy':'watch', cls: margin>40?'down':'up'},
+    {label:'Gross margin / generation', val:fmtPct(margin), delta: margin>35?'healthy':margin>15?'watch':'thin', cls: margin>35?'down':'up'},
     {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up'},
     {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down'},
-    {label:'External-model spend share', val:fmtPct(apiShare), delta:'of generations', cls:'flat'},
+    {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up'},
   ];
   document.getElementById('kpis').innerHTML = k.map(x=>`
     <div class="kpi"><div class="label">${x.label}</div><div class="val">${x.val}</div>
@@ -317,11 +327,13 @@ function renderSurface(){
 
 function renderSourcing(){
   const rows = sourcing.map(s=>{
-    const mcls = s.margin>40?'good':s.margin>20?'warn':'bad';
+    const cost = s.costClip*(s.kind==='own'?loadedMult():1);
+    const margin = (s.revClip-cost)/s.revClip*100;
+    const mcls = margin>40?'good':margin>20?'warn':'bad';
     return `<tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
     <td class="num">${s.share}%</td>
-    <td class="num">${fmtC(s.costClip*(s.kind==='own'?loadedMult():1))}</td>
-    <td class="num"><span class="pill ${mcls}">${s.margin}%</span></td>
+    <td class="num">${fmtC(cost)}</td>
+    <td class="num"><span class="pill ${mcls}">${margin.toFixed(0)}%</span></td>
     <td class="src">${s.note}</td></tr>`;}).join('');
   document.getElementById('sourcingTable').innerHTML =
     `<tr><th>Model</th><th class="num">% of gens</th><th class="num">Cost / clip</th><th class="num">Margin</th><th>Note</th></tr>${rows}`;
@@ -350,7 +362,7 @@ function renderTiers(){
   const rows = tiers.map(t=>{
     const creditPrice = t.price/t.credits;
     const typCost = t.credits*t.typicalUse*COGS_PER_CREDIT*loadedMult();
-    const heavyCost = t.credits*t.heavyUse*COGS_PER_CREDIT*loadedMult();
+    const heavyCost = t.credits*t.heavyUse*COGS_PER_CREDIT_HEAVY*loadedMult();
     const typMargin = (t.price-typCost)/t.price*100;
     const heavyMargin = (t.price-heavyCost)/t.price*100;
     const hcls = heavyMargin>0?'warn':'bad';
@@ -419,13 +431,14 @@ function runSim(){
   document.getElementById('v_dist').textContent=(dist*100).toFixed(0)+'%';
 
   const gensMo = dau*gpu*30;
-  // base cost/clip: own ~0.055, api ~0.20, scaled by resolution premium; distillation cuts own-model step cost
-  const ownCost = 0.055*resPrem*(1-dist*0.45);
-  const apiCost = 0.20*resPrem; // distillation doesn't help pass-through API
+  // cost basis matches the dashboard: own ~0.14/clip, blended API ~0.67; resolution
+  // scales both; distillation cuts own-model step cost only (API is pass-through).
+  const ownCost = 0.14*resPrem*(1-dist*0.45);
+  const apiCost = 0.67*resPrem;
   const costClip = ownCost*(1-apiShare) + apiCost*apiShare;
   const cogs = gensMo*costClip;
-  // revenue: API clips bill more credits but margin stays thin (vendor takes most of it)
-  const revClip = (0.118*(1-apiShare) + 0.22*apiShare)*resPrem;
+  // revenue: own ~0.32/clip, API ~0.74 (billed higher but margin stays thin)
+  const revClip = (0.32*(1-apiShare) + 0.74*apiShare)*resPrem;
   const revenue = gensMo*revClip;
   const margin = (revenue-cogs)/revenue*100;
   const out=[
