@@ -146,7 +146,7 @@
     <div class="sec-head"><h2>2 · Cost per generation</h2><span class="hint">The unit economic everything ladders to — cost ≈ frames × resolution × steps × $/GPU-sec</span></div>
     <div class="panel">
       <h3>Cost &amp; margin per generation, by model and resolution</h3>
-      <p class="sub">Customer pays in <b>credits</b> (Luma's real model: video ≈ 4–280 credits/sec by model, resolution &amp; audio). We translate credits → revenue and GPU-seconds → cost to see margin per clip.</p>
+      <p class="sub">Customer pays in <b>credits</b> (Luma's real model: video ≈ 4–280 credits/sec by model, resolution &amp; audio). Revenue here = credits × a <b>blended realized ≈ $0.0026/credit</b> (consumer/Plus-weighted — most volume sits near the Plus list rate, above the lower Pro/Ultra rates). Cost = GPU-seconds priced out. Margins are illustrative.</p>
       <table id="cpgTable"></table>
     </div>
   </section>
@@ -207,7 +207,7 @@
             <label>Few-step distillation adoption <span class="cv" id="v_dist"></span></label>
             <input type="range" id="dist" min="0" max="60" step="5" value="0">
           </div>
-          <p class="src" style="margin-top:4px">Distillation cuts denoising steps → lower cost/clip, gated on quality. Slider = % of eligible jobs moved to the few-step path.</p>
+          <p class="src" style="margin-top:4px">Distillation cuts denoising steps → lower cost/clip, gated on quality. Slider = % of eligible jobs moved to the few-step path. <i>Simplified two-bucket model (own / API) — directionally consistent with the panels above, not a second source of truth.</i></p>
         </div>
         <div class="sim-out" id="simOut"></div>
       </div>
@@ -225,6 +225,7 @@
 const fmt$ = n => (n<0?'-$':'$')+(a=>a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3).toFixed(0)+'k':a.toFixed(2))(Math.abs(n));
 const fmtPct = n => n.toFixed(0)+'%';
 const fmtC = n => '$'+n.toFixed(3);
+const fmtC4 = n => '$'+n.toFixed(4);
 
 // surfaces: monthly compute spend ($). Serving (DM + Agents) = 1.70M ties to the
 // simulator default COGS; Research/training is separate (not per-generation).
@@ -284,6 +285,11 @@ let lens = 'marginal';
 
 // ---------- renderers ----------
 function loadedMult(){ return lens==='loaded' ? (1+LOADED.trainingAmort+LOADED.idleWaste) : 1; }
+// single source of truth for blended $/gen — own-model cost carries the fully-loaded
+// uplift, API does not (no training to amortize). Used by KPI strip AND trend chart.
+function blendedCost(loaded){ const m = loaded ? (1+LOADED.trainingAmort+LOADED.idleWaste) : 1;
+  return sourcing.reduce((a,s)=>a + s.share/100 * s.costClip * (s.kind==='own'?m:1), 0); }
+function blendedRev(){ return sourcing.reduce((a,s)=>a + s.share/100 * s.revClip, 0); }
 
 function renderLensNote(){
   document.getElementById('lensNote').innerHTML = lens==='marginal'
@@ -292,22 +298,20 @@ function renderLensNote(){
 }
 
 function renderKPIs(){
-  const m = loadedMult();
   const totalSpend = surfaces.reduce((a,s)=>a+s.val,0);
   // derive blended economics from the sourcing mix so every panel ties out.
-  // fully-loaded uplift applies to own-model cost only (training has no API analog).
-  const blendedCost = sourcing.reduce((a,s)=>a + s.share/100 * s.costClip * (s.kind==='own'?m:1), 0);
-  const blendedRev  = sourcing.reduce((a,s)=>a + s.share/100 * s.revClip, 0);
-  const margin = (blendedRev-blendedCost)/blendedRev*100;
-  const fleetUtil = 60; const alloc = 100;
+  const bCost = blendedCost(lens==='loaded');
+  const bRev  = blendedRev();
+  const margin = (bRev-bCost)/bRev*100;
+  const alloc = 100;
+  const fleetUtil = Math.round(util.reduce((a,u)=>a+u.realized,0)/util.length); // mean of the util panel
   const apiGenShare = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share,0);
   const apiSpend = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share/100*s.costClip,0);
-  const totSpendPerGen = sourcing.reduce((a,s)=>a+s.share/100*s.costClip,0);
-  const apiSpendShare = apiSpend/totSpendPerGen*100;
+  const apiSpendShare = apiSpend/blendedCost(false)*100;
   const k = [
     {label:'Monthly compute spend', val:fmt$(totalSpend), delta:'+9% MoM', cls:'up'},
-    {label:'Blended cost / generation', val:fmtC(blendedCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat'},
-    {label:'Gross margin / generation', val:fmtPct(margin), delta: margin>35?'healthy':margin>15?'watch':'thin', cls: margin>35?'down':'up'},
+    {label:'Blended cost / generation', val:fmtC(bCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat'},
+    {label:'Gross margin / generation', val:fmtPct(margin), delta:'blend hides 8–11% API tail', cls:'flat'},
     {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up'},
     {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down'},
     {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up'},
@@ -365,19 +369,20 @@ function renderTiers(){
     const heavyCost = t.credits*t.heavyUse*COGS_PER_CREDIT_HEAVY*loadedMult();
     const typMargin = (t.price-typCost)/t.price*100;
     const heavyMargin = (t.price-heavyCost)/t.price*100;
+    const tcls = typMargin>40?'good':typMargin>0?'warn':'bad';
     const hcls = heavyMargin>0?'warn':'bad';
     return `<tr>
       <td><b>${t.name}</b></td>
       <td class="num">$${t.price}/mo</td>
       <td class="num">${(t.credits/1000)}k</td>
-      <td class="num">${fmtC(creditPrice)}</td>
-      <td class="num"><span class="pill good">${typMargin.toFixed(0)}%</span></td>
+      <td class="num">${fmtC4(creditPrice)}</td>
+      <td class="num"><span class="pill ${tcls}">${typMargin.toFixed(0)}%</span></td>
       <td class="num"><span class="pill ${hcls}">${heavyMargin>0?'+':''}${heavyMargin.toFixed(0)}%</span></td>
     </tr>`;
   }).join('');
   document.getElementById('tierTable').innerHTML =
-    `<tr><th>Plan</th><th class="num">Price</th><th class="num">Credits</th><th class="num">$ / credit</th><th class="num">Margin · typical user</th><th class="num">Margin · power user*</th></tr>${rows}
-     <tr><td colspan="6" class="src">*Power user = burns full credit grant on expensive (4K / API) generations. Where this goes negative, the fix is packaging (caps / overage priced at marginal GPU-cost), not infra.</td></tr>`;
+    `<tr><th>Plan</th><th class="num">Price</th><th class="num">Credits</th><th class="num">$ / credit (list)</th><th class="num">Margin · typical user</th><th class="num">Margin · power user*</th></tr>${rows}
+     <tr><td colspan="6" class="src">*Power user = burns the full credit grant on expensive (4K / API) gens, assumed ≈ $0.0024 COGS/credit vs. the list price/credit above — so the sign flips on that mix assumption (illustrative). The point: on a flat plan, a heavy API-skewed user can cost more than they pay. Fix is packaging (caps / overage priced at marginal GPU-cost), not infra.</td></tr>`;
 }
 
 function renderUtil(){
@@ -393,20 +398,23 @@ function renderUtil(){
 
 function renderTrend(){
   const W=440,H=180,pad=34;
-  const max=Math.max(...trend)*1.1, min=Math.min(...trend)*0.9;
-  const x=i=>pad+i*(W-pad-12)/(trend.length-1);
+  // scale the (marginal-authored) series to the active lens so the endpoint tracks the KPI.
+  const tmult = blendedCost(lens==='loaded')/blendedCost(false);
+  const series = trend.map(v=>v*tmult);
+  const max=Math.max(...series)*1.1, min=Math.min(...series)*0.9;
+  const x=i=>pad+i*(W-pad-12)/(series.length-1);
   const y=v=>H-pad-(v-min)/(max-min)*(H-pad-14);
-  let grid='',pts='';
-  for(let g=0;g<=3;g++){const yy=pad+g*(H-pad-14)/3-0+ (14)/1; const gy=14+g*(H-pad-14)/3;
+  let grid='';
+  for(let g=0;g<=3;g++){const gy=14+g*(H-pad-14)/3;
     grid+=`<line class="gridline" x1="${pad}" y1="${gy}" x2="${W-12}" y2="${gy}"/>
     <text class="axis" x="6" y="${gy+3}">$${(max-(g)*(max-min)/3).toFixed(2)}</text>`;}
-  pts=trend.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
-  const area=`${pad},${H-pad} ${pts} ${x(trend.length-1)},${H-pad}`;
+  const pts=series.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const area=`${pad},${H-pad} ${pts} ${x(series.length-1)},${H-pad}`;
   const marks=releases.map(r=>`
     <line x1="${x(r.i)}" y1="14" x2="${x(r.i)}" y2="${H-pad}" stroke="var(--accent)" stroke-dasharray="3 3" stroke-width="1" opacity=".5"/>
     <polygon points="${x(r.i)-4},10 ${x(r.i)+4},10 ${x(r.i)},17" fill="var(--accent)"/>
     `).join('');
-  const dots=trend.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--accent)"/>`).join('');
+  const dots=series.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--accent)"/>`).join('');
   document.getElementById('trendChart').innerHTML=`
     <svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible">
       ${grid}
