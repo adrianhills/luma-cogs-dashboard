@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Luma · Compute COGS Dashboard (mock)</title>
+<style>
+  :root{
+    --bg:#fbfbfd; --panel:#ffffff; --ink:#1d1d1f; --muted:#6e6e73;
+    --line:#e6e6eb; --line-2:#f0f0f3; --accent:#0a84ff; --accent-soft:#e8f1ff;
+    --good:#1a9e57; --good-soft:#e3f5ec; --warn:#c8810a; --warn-soft:#fbf0db;
+    --bad:#d8403a; --bad-soft:#fbe9e8; --own:#0a84ff; --api:#8e5cff;
+    --research:#34a98a; --consumer:#0a84ff; --enterprise:#5a6acb;
+    --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 22px rgba(0,0,0,.05);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+  .title h1{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 4px}
+  .title p{margin:0;color:var(--muted);font-size:14px;max-width:640px}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;color:var(--warn);background:var(--warn-soft);
+    border:1px solid #f0deb6;padding:5px 10px;border-radius:999px;white-space:nowrap}
+  .toggle{display:flex;background:#ececed;border-radius:10px;padding:3px;font-size:13px;font-weight:500}
+  .toggle button{border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:540}
+  .toggle button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .lens-note{font-size:12.5px;color:var(--muted);margin:10px 0 26px}
+  .lens-note b{color:var(--ink);font-weight:600}
+
+  section{margin-top:34px}
+  .sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+  .sec-head h2{font-size:13px;font-weight:680;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0}
+  .sec-head .hint{font-size:12.5px;color:var(--muted)}
+
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 14px;box-shadow:var(--shadow)}
+  .kpi .label{font-size:11.5px;color:var(--muted);font-weight:560;letter-spacing:.01em;margin-bottom:8px;min-height:30px}
+  .kpi .val{font-size:25px;font-weight:640;letter-spacing:-.02em}
+  .kpi .delta{font-size:12px;font-weight:600;margin-top:5px;display:inline-flex;align-items:center;gap:4px}
+  .up{color:var(--bad)} .down{color:var(--good)} .flat{color:var(--muted)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 20px 16px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 2px;font-size:15px;font-weight:620;letter-spacing:-.01em}
+  .panel .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line-2)}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:620}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+  .tag.own{background:var(--accent-soft);color:#0a6ad6}
+  .tag.api{background:#f0eaff;color:#7b46e8}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .pill{font-size:11px;font-weight:640;padding:2px 9px;border-radius:999px}
+  .pill.good{background:var(--good-soft);color:var(--good)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .pill.bad{background:var(--bad-soft);color:var(--bad)}
+
+  .bar-row{display:flex;align-items:center;gap:12px;margin:11px 0;font-size:13px}
+  .bar-row .nm{width:150px;color:var(--ink);font-weight:540;display:flex;align-items:center;gap:8px}
+  .bar-track{flex:1;background:var(--line-2);border-radius:7px;height:26px;position:relative;overflow:hidden}
+  .bar-fill{height:100%;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11.5px;font-weight:640}
+  .bar-row .amt{width:74px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+
+  /* simulator */
+  .sim{display:grid;grid-template-columns:300px 1fr;gap:28px}
+  @media(max-width:840px){.sim{grid-template-columns:1fr}}
+  .control{margin-bottom:18px}
+  .control label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:560;margin-bottom:7px}
+  .control label .cv{color:var(--accent);font-weight:680;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .sim-out{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start}
+  .out-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:15px}
+  .out-card .l{font-size:11.5px;color:var(--muted);font-weight:560;margin-bottom:6px}
+  .out-card .v{font-size:22px;font-weight:660;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .out-card .x{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .out-card.hero{grid-column:1/3;background:linear-gradient(180deg,#f6faff,#eef5ff);border-color:#d6e7ff}
+
+  .axis{font-size:10px;fill:var(--muted)}
+  .gridline{stroke:var(--line-2);stroke-width:1}
+  footer{margin-top:48px;padding-top:22px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  footer b{color:var(--ink)}
+  a{color:var(--accent);text-decoration:none}
+  .src{font-size:11.5px;color:var(--muted)}
+  .callout{background:var(--accent-soft);border:1px solid #cfe4ff;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0b5fc0;margin-top:14px}
+  .callout b{color:#084c9e}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="title">
+      <h1>Compute COGS — Control Tower</h1>
+      <p>One screen: where every GPU-dollar goes, what each generation costs to serve, and whether each surface and plan tier is actually margin-positive. Visibility first — the team decides what to act on.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+      <span class="badge">● Mock / illustrative data</span>
+      <div class="toggle" id="lensToggle">
+        <button data-lens="marginal" class="on">Marginal margin</button>
+        <button data-lens="loaded">Fully-loaded</button>
+      </div>
+    </div>
+  </header>
+
+  <p class="lens-note" id="lensNote"></p>
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- Spend by surface + by sourcing -->
+  <section>
+    <div class="sec-head"><h2>1 · See the spend before touching it</h2><span class="hint">Where the money goes — by product surface and by who serves it</span></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Monthly compute spend by surface</h3>
+        <p class="sub">Consumer (Dream Machine) · Enterprise (Luma Agents + API) · Research / training</p>
+        <div id="surfaceBars"></div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--consumer)"></i>Dream Machine (consumer)</span>
+          <span><i class="dot" style="background:var(--enterprise)"></i>Luma Agents + API (enterprise)</span>
+          <span><i class="dot" style="background:var(--research)"></i>Research / training</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Own model vs. third-party API</h3>
+        <p class="sub">Ray (in-house — carries training amortization) vs. Veo / Kling / Seedance (pass-through API spend is COGS too)</p>
+        <table id="sourcingTable"></table>
+        <div class="callout"><b>Why it matters:</b> in-house Ray is cheaper per clip <i>once training is amortized</i>; API models have zero training cost but a hard per-call floor you can't optimize away. The job is steering the mix, not eliminating either.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cost per generation -->
+  <section>
+    <div class="sec-head"><h2>2 · Cost per generation</h2><span class="hint">The unit economic everything ladders to — cost ≈ frames × resolution × steps × $/GPU-sec</span></div>
+    <div class="panel">
+      <h3>Cost &amp; margin per generation, by model and resolution</h3>
+      <p class="sub">Customer pays in <b>credits</b> (Luma's real model: video ≈ 4–280 credits/sec by model, resolution &amp; audio). We translate credits → revenue and GPU-seconds → cost to see margin per clip.</p>
+      <table id="cpgTable"></table>
+    </div>
+  </section>
+
+  <!-- Margin by tier -->
+  <section>
+    <div class="sec-head"><h2>3 · Margin by plan tier</h2><span class="hint">Contribution margin per plan — catches the margin-negative power-user tail flat pricing hides</span></div>
+    <div class="panel">
+      <h3>Plan economics — Luma Agents tiers</h3>
+      <p class="sub">Real prices &amp; credit grants. A heavy user who burns their full credit allotment on expensive (4K / API) generations can cost more to serve than they pay — a <b>packaging</b> fix, not a compute fix.</p>
+      <table id="tierTable"></table>
+    </div>
+  </section>
+
+  <!-- Utilization + trend -->
+  <section>
+    <div class="sec-head"><h2>4 · Fleet utilization &amp; the cost-per-gen trend</h2><span class="hint">Allocation vs. real use is the #1 waste lever; trend catches "better but pricier" model releases</span></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Allocation vs. realized utilization</h3>
+        <p class="sub">A GPU can be <i>claimed</i> by a team but barely doing useful math. The gap is pure waste — usually the fastest savings.</p>
+        <div id="utilBars"></div>
+        <div class="callout" id="reclaimNote"></div>
+      </div>
+      <div class="panel">
+        <h3>Blended cost-per-generation over time</h3>
+        <p class="sub">Each ▲ marks a model release. The job: keep cost-per-gen on the gate so a quality win that raises cost is a <i>deliberate</i> call.</p>
+        <div id="trendChart"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Simulator -->
+  <section>
+    <div class="sec-head"><h2>5 · Forecast &amp; simulate</h2><span class="hint">Baseline → simulate → re-baseline. Move the drivers; watch COGS and margin respond.</span></div>
+    <div class="panel">
+      <h3>Cost &amp; margin simulator</h3>
+      <p class="sub">Set the demand and mix drivers; the model projects monthly generations, COGS, revenue and gross margin. This is the "simulate what it will cost" loop — re-baseline the assumptions whenever research ships a new architecture.</p>
+      <div class="sim">
+        <div class="controls">
+          <div class="control">
+            <label>Daily active creators <span class="cv" id="v_dau"></span></label>
+            <input type="range" id="dau" min="5000" max="500000" step="5000" value="80000">
+          </div>
+          <div class="control">
+            <label>Generations / creator / day <span class="cv" id="v_gpu"></span></label>
+            <input type="range" id="gpu" min="1" max="20" step="1" value="6">
+          </div>
+          <div class="control">
+            <label>Share routed to API models (Veo/Kling) <span class="cv" id="v_api"></span></label>
+            <input type="range" id="api" min="0" max="100" step="5" value="25">
+          </div>
+          <div class="control">
+            <label>Avg resolution / length premium <span class="cv" id="v_res"></span></label>
+            <input type="range" id="res" min="50" max="250" step="10" value="100">
+          </div>
+          <div class="control">
+            <label>Few-step distillation adoption <span class="cv" id="v_dist"></span></label>
+            <input type="range" id="dist" min="0" max="60" step="5" value="0">
+          </div>
+          <p class="src" style="margin-top:4px">Distillation cuts denoising steps → lower cost/clip, gated on quality. Slider = % of eligible jobs moved to the few-step path.</p>
+        </div>
+        <div class="sim-out" id="simOut"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>What this is.</b> A mock decision surface built for the Luma TPM technical session — to make the COGS conversation concrete rather than abstract. Every number is <b>illustrative</b> and chosen to be order-of-magnitude plausible; none are Luma's real figures. The <i>structure</i> — credits as the customer-facing unit, Ray vs. third-party API split, marginal vs. fully-loaded margin, allocation-vs-utilization gap — mirrors how Luma actually prices and serves today.</p>
+    <p class="src">Pricing structure grounded in Luma's public pricing (Plus $30 / 10k credits · Pro $90 / 40k · Ultra $300 / 150k; video ≈ 4–280 credits/sec by model, resolution &amp; audio; Ray in-house + Veo/Kling/Seedance via API; Dream Machine, Luma Agents, and Agents API are separate products with separate credit wallets). Built with zero dependencies — view source.</p>
+  </footer>
+</div>
+
+<script>
+// ---------- illustrative data (mock) ----------
+const fmt$ = n => (n<0?'-$':'$')+(a=>a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3).toFixed(0)+'k':a.toFixed(2))(Math.abs(n));
+const fmtPct = n => n.toFixed(0)+'%';
+const fmtC = n => '$'+n.toFixed(3);
+
+// surfaces: monthly compute spend ($)
+const surfaces = [
+  {name:'Dream Machine (consumer)', val:412000, color:'var(--consumer)'},
+  {name:'Luma Agents + API (enterprise)', val:286000, color:'var(--enterprise)'},
+  {name:'Research / training', val:534000, color:'var(--research)'},
+];
+
+// own vs api sourcing
+const sourcing = [
+  {model:'Ray (in-house)', kind:'own', share:68, costClip:0.071, trained:true, note:'Training amortized into cost'},
+  {model:'Veo (API)', kind:'api', share:14, costClip:0.34, trained:false, note:'Pass-through per-call floor'},
+  {model:'Kling (API)', kind:'api', share:11, costClip:0.21, trained:false, note:'Overflow / capability gap'},
+  {model:'Seedance (API)', kind:'api', share:7, costClip:0.16, trained:false, note:'Burst overflow'},
+];
+
+// cost per generation by model x resolution
+// creditsPerClip = customer credits charged; revenue uses blended $/credit
+const BLENDED_CREDIT_PRICE = 0.0026; // $/credit, blended across tiers
+const cpg = [
+  {model:'Ray', kind:'own', res:'540p · 5s', credits:60,  gpuCost:0.038},
+  {model:'Ray', kind:'own', res:'720p · 5s', credits:120, gpuCost:0.071},
+  {model:'Ray', kind:'own', res:'1080p · 5s',credits:230, gpuCost:0.142},
+  {model:'Ray', kind:'own', res:'4K · 5s',    credits:760, gpuCost:0.515},
+  {model:'Veo', kind:'api', res:'1080p · 5s', credits:340, gpuCost:0.340},
+  {model:'Kling',kind:'api',res:'1080p · 5s', credits:250, gpuCost:0.210},
+];
+
+// plan tiers (real Luma Agents pricing)
+const tiers = [
+  {name:'Plus',  price:30,  credits:10000,  typicalUse:0.55, heavyUse:1.0},
+  {name:'Pro',   price:90,  credits:40000,  typicalUse:0.50, heavyUse:1.0},
+  {name:'Ultra', price:300, credits:150000, typicalUse:0.45, heavyUse:1.0},
+];
+const COGS_PER_CREDIT = 0.00190; // illustrative blended GPU cost per credit served
+
+// utilization: claimed vs realized
+const util = [
+  {pool:'Production inference (reserved floor)', claimed:100, realized:62, color:'var(--consumer)'},
+  {pool:'Research / training cluster', claimed:100, realized:81, color:'var(--research)'},
+  {pool:'Experimentation / shared', claimed:100, realized:38, color:'var(--enterprise)'},
+];
+
+// cost-per-gen trend (12 wks) + release markers
+const trend = [0.094,0.092,0.091,0.089,0.103,0.099,0.096,0.094,0.092,0.081,0.079,0.078];
+const releases = [{i:4,label:'Ray v3 (quality↑, cost↑)'},{i:9,label:'Few-step distill'}];
+
+// fully-loaded uplift factors
+const LOADED = {trainingAmort:0.42, idleWaste:0.18}; // adds to marginal cost for fully-loaded lens
+
+let lens = 'marginal';
+
+// ---------- renderers ----------
+function loadedMult(){ return lens==='loaded' ? (1+LOADED.trainingAmort+LOADED.idleWaste) : 1; }
+
+function renderLensNote(){
+  document.getElementById('lensNote').innerHTML = lens==='marginal'
+    ? '<b>Marginal lens:</b> serving cost only (GPU-seconds + API pass-through). The right number for pricing, rate-limit and per-generation decisions.'
+    : '<b>Fully-loaded lens:</b> serving + amortized training compute + idle/reserved waste. The "is this product actually profitable" number. Adds ~'+Math.round((LOADED.trainingAmort+LOADED.idleWaste)*100)+'% to marginal cost here.';
+}
+
+function renderKPIs(){
+  const m = loadedMult();
+  const totalSpend = surfaces.reduce((a,s)=>a+s.val,0);
+  const blendedCost = 0.082*m;
+  const blendedRev = 0.118;
+  const margin = (blendedRev-blendedCost)/blendedRev*100;
+  const fleetUtil = 60; const alloc = 100;
+  const apiShare = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share,0);
+  const k = [
+    {label:'Monthly compute spend', val:fmt$(totalSpend*(lens==='loaded'?1:1)), delta:'+9% MoM', cls:'up'},
+    {label:'Blended cost / generation', val:fmtC(blendedCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat'},
+    {label:'Gross margin / generation', val:fmtPct(margin), delta: margin>40?'healthy':'watch', cls: margin>40?'down':'up'},
+    {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up'},
+    {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down'},
+    {label:'External-model spend share', val:fmtPct(apiShare), delta:'of generations', cls:'flat'},
+  ];
+  document.getElementById('kpis').innerHTML = k.map(x=>`
+    <div class="kpi"><div class="label">${x.label}</div><div class="val">${x.val}</div>
+    <div class="delta ${x.cls}">${x.delta}</div></div>`).join('');
+}
+
+function renderSurface(){
+  const max = Math.max(...surfaces.map(s=>s.val));
+  document.getElementById('surfaceBars').innerHTML = surfaces.map(s=>`
+    <div class="bar-row"><div class="nm">${s.name}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${s.val/max*100}%;background:${s.color}">${fmt$(s.val)}</div></div>
+    </div>`).join('');
+}
+
+function renderSourcing(){
+  const rows = sourcing.map(s=>`
+    <tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
+    <td class="num">${s.share}%</td>
+    <td class="num">${fmtC(s.costClip*(s.kind==='own'?loadedMult():1))}</td>
+    <td class="src">${s.note}</td></tr>`).join('');
+  document.getElementById('sourcingTable').innerHTML =
+    `<tr><th>Model</th><th class="num">% of gens</th><th class="num">Cost / clip</th><th>Note</th></tr>${rows}`;
+}
+
+function renderCPG(){
+  const rows = cpg.map(r=>{
+    const rev = r.credits*BLENDED_CREDIT_PRICE;
+    const cost = r.gpuCost*(r.kind==='own'?loadedMult():1);
+    const margin = (rev-cost)/rev*100;
+    const cls = margin>50?'good':margin>25?'warn':'bad';
+    return `<tr>
+      <td><span class="tag ${r.kind}">${r.kind==='own'?'Own':'API'}</span> ${r.model}</td>
+      <td>${r.res}</td>
+      <td class="num">${r.credits}</td>
+      <td class="num">${fmt$(rev)}</td>
+      <td class="num">${fmt$(cost)}</td>
+      <td class="num"><span class="pill ${cls}">${margin.toFixed(0)}%</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('cpgTable').innerHTML =
+    `<tr><th>Model</th><th>Resolution · length</th><th class="num">Credits charged</th><th class="num">Revenue</th><th class="num">GPU cost</th><th class="num">Margin</th></tr>${rows}`;
+}
+
+function renderTiers(){
+  const rows = tiers.map(t=>{
+    const creditPrice = t.price/t.credits;
+    const typCost = t.credits*t.typicalUse*COGS_PER_CREDIT*loadedMult();
+    const heavyCost = t.credits*t.heavyUse*COGS_PER_CREDIT*loadedMult();
+    const typMargin = (t.price-typCost)/t.price*100;
+    const heavyMargin = (t.price-heavyCost)/t.price*100;
+    const hcls = heavyMargin>0?'warn':'bad';
+    return `<tr>
+      <td><b>${t.name}</b></td>
+      <td class="num">$${t.price}/mo</td>
+      <td class="num">${(t.credits/1000)}k</td>
+      <td class="num">${fmtC(creditPrice)}</td>
+      <td class="num"><span class="pill good">${typMargin.toFixed(0)}%</span></td>
+      <td class="num"><span class="pill ${hcls}">${heavyMargin>0?'+':''}${heavyMargin.toFixed(0)}%</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tierTable').innerHTML =
+    `<tr><th>Plan</th><th class="num">Price</th><th class="num">Credits</th><th class="num">$ / credit</th><th class="num">Margin · typical user</th><th class="num">Margin · power user*</th></tr>${rows}
+     <tr><td colspan="6" class="src">*Power user = burns full credit grant on expensive (4K / API) generations. Where this goes negative, the fix is packaging (caps / overage priced at marginal GPU-cost), not infra.</td></tr>`;
+}
+
+function renderUtil(){
+  document.getElementById('utilBars').innerHTML = util.map(u=>`
+    <div class="bar-row"><div class="nm" style="width:175px">${u.pool}</div>
+    <div class="bar-track">
+      <div class="bar-fill" style="width:${u.realized}%;background:${u.color}">${u.realized}%</div>
+    </div><div class="amt">${u.claimed-u.realized} idle</div></div>`).join('');
+  const idle = util.reduce((a,u)=>a+(u.claimed-u.realized),0);
+  document.getElementById('reclaimNote').innerHTML =
+    `<b>Reclaim the trough:</b> the experimentation pool runs ${util[2].claimed-util[2].realized} pts under its claim. Backfill it with <i>short, restartable, topology-light</i> work — batch/offline gen, evals, data-prep — not multi-node training.`;
+}
+
+function renderTrend(){
+  const W=440,H=180,pad=34;
+  const max=Math.max(...trend)*1.1, min=Math.min(...trend)*0.9;
+  const x=i=>pad+i*(W-pad-12)/(trend.length-1);
+  const y=v=>H-pad-(v-min)/(max-min)*(H-pad-14);
+  let grid='',pts='';
+  for(let g=0;g<=3;g++){const yy=pad+g*(H-pad-14)/3-0+ (14)/1; const gy=14+g*(H-pad-14)/3;
+    grid+=`<line class="gridline" x1="${pad}" y1="${gy}" x2="${W-12}" y2="${gy}"/>
+    <text class="axis" x="6" y="${gy+3}">$${(max-(g)*(max-min)/3).toFixed(2)}</text>`;}
+  pts=trend.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const area=`${pad},${H-pad} ${pts} ${x(trend.length-1)},${H-pad}`;
+  const marks=releases.map(r=>`
+    <line x1="${x(r.i)}" y1="14" x2="${x(r.i)}" y2="${H-pad}" stroke="var(--accent)" stroke-dasharray="3 3" stroke-width="1" opacity=".5"/>
+    <polygon points="${x(r.i)-4},10 ${x(r.i)+4},10 ${x(r.i)},17" fill="var(--accent)"/>
+    `).join('');
+  const dots=trend.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--accent)"/>`).join('');
+  document.getElementById('trendChart').innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible">
+      ${grid}
+      <polygon points="${area}" fill="var(--accent-soft)" opacity=".6"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      ${dots}${marks}
+    </svg>
+    <div class="legend" style="margin-top:2px">${releases.map(r=>`<span><i class="dot" style="background:var(--accent)"></i>wk ${r.i+1}: ${r.label}</span>`).join('')}</div>`;
+}
+
+// ---------- simulator ----------
+function runSim(){
+  const dau=+document.getElementById('dau').value;
+  const gpu=+document.getElementById('gpu').value;
+  const apiShare=+document.getElementById('api').value/100;
+  const resPrem=+document.getElementById('res').value/100;
+  const dist=+document.getElementById('dist').value/100;
+  document.getElementById('v_dau').textContent=dau.toLocaleString();
+  document.getElementById('v_gpu').textContent=gpu;
+  document.getElementById('v_api').textContent=(apiShare*100).toFixed(0)+'%';
+  document.getElementById('v_res').textContent=(resPrem*100).toFixed(0)+'%';
+  document.getElementById('v_dist').textContent=(dist*100).toFixed(0)+'%';
+
+  const gensMo = dau*gpu*30;
+  // base cost/clip: own ~0.055, api ~0.20, scaled by resolution premium; distillation cuts own-model step cost
+  const ownCost = 0.055*resPrem*(1-dist*0.45);
+  const apiCost = 0.20*resPrem; // distillation doesn't help pass-through API
+  const costClip = ownCost*(1-apiShare) + apiCost*apiShare;
+  const cogs = gensMo*costClip;
+  // revenue: customers pay more credits for API/4K clips, so revenue scales with mix AND resolution
+  const revClip = (0.118*(1-apiShare) + 0.27*apiShare)*resPrem;
+  const revenue = gensMo*revClip;
+  const margin = (revenue-cogs)/revenue*100;
+  const out=[
+    {l:'Generations / month', v:(gensMo/1e6).toFixed(1)+'M', x:`${dau.toLocaleString()} creators × ${gpu}/day`},
+    {l:'Avg cost / generation', v:fmtC(costClip), x:`${(apiShare*100).toFixed(0)}% on API models`},
+    {l:'Monthly COGS', v:fmt$(cogs), x:'serving cost only'},
+    {l:'Monthly revenue (est.)', v:fmt$(revenue), x:'credit consumption'},
+  ];
+  const mcls = margin>40?'var(--good)':margin>20?'var(--warn)':'var(--bad)';
+  document.getElementById('simOut').innerHTML =
+    `<div class="out-card hero"><div class="l">Projected gross margin</div>
+       <div class="v" style="color:${mcls};font-size:30px">${margin.toFixed(0)}%</div>
+       <div class="x">${fmt$(revenue-cogs)} contribution / month · move the drivers to pressure-test it</div></div>`
+    + out.map(o=>`<div class="out-card"><div class="l">${o.l}</div><div class="v">${o.v}</div><div class="x">${o.x}</div></div>`).join('');
+}
+
+// ---------- wire ----------
+function renderAll(){renderLensNote();renderKPIs();renderSurface();renderSourcing();renderCPG();renderTiers();renderUtil();renderTrend();}
+document.getElementById('lensToggle').addEventListener('click',e=>{
+  if(!e.target.dataset.lens)return;
+  lens=e.target.dataset.lens;
+  document.querySelectorAll('#lensToggle button').forEach(b=>b.classList.toggle('on',b.dataset.lens===lens));
+  renderAll();
+});
+['dau','gpu','api','res','dist'].forEach(id=>document.getElementById(id).addEventListener('input',runSim));
+renderAll();runSim();
+</script>
+</body>
+</html>
