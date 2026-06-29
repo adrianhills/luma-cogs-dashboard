@@ -253,7 +253,7 @@
   <header class="top">
     <div class="title">
       <h1>Compute COGS — Control Tower</h1>
-      <p>One screen: where every GPU-dollar goes, what each generation costs to serve, and whether each surface and plan tier is actually margin-positive. Visibility first — the team decides what to act on.</p>
+      <p>One screen for where the GPU money goes, what each generation costs to make, and which surfaces and plans actually turn a profit. Make it visible first; the team decides what to fix.</p>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
       <div class="toolbar">
@@ -273,16 +273,16 @@
     <div class="panel info-panel">
       <div class="info-head"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg><h3>How to read this — a 5-minute info session</h3></div>
       <div class="info-grid">
-        <div><b>1 · Establish the cost</b><p>The top half just makes spend visible — by surface, model, generation and plan. No levers pulled yet: awareness comes first, so the team can decide what's worth acting on.</p></div>
-        <div><b>2 · See the impact</b><p>The bottom half shows what light policy &amp; workflow changes do to that spend — idle reclaim, a cost-on-the-release-gate, and a live simulator you can move.</p></div>
-        <div><b>3 · Two honest views</b><p>Toggle <i>marginal</i> (serving cost only — the pricing lens) and <i>fully-loaded</i> (serving + amortized training + idle waste — the "is this real" lens). Same data, two stories.</p></div>
+        <div><b>1 · See the cost</b><p>The top half just shows the bill — by surface, model, generation, and plan. Nothing's been changed yet. You can't fix what you can't see, so I start here.</p></div>
+        <div><b>2 · See the impact</b><p>The bottom half shows what small changes do to that bill — reclaiming idle GPUs, putting cost on the model-release gate, and a simulator you can drag yourself.</p></div>
+        <div><b>3 · Two honest lenses</b><p>Flip between the two lenses. <i>Marginal</i> is just the cost to serve a clip — use it to set prices. <i>Fully-loaded</i> adds training and idle waste — use it to ask whether something really makes money. Same numbers, two answers.</p></div>
       </div>
     </div>
   </section>
 
   <div class="stage">
     <div class="stage-no">Stage 1</div>
-    <div class="stage-txt"><b>Establish &amp; make visible</b><span>Pure cost and awareness — what compute costs today, by surface, model, generation and plan. No policy pulled yet.</span></div>
+    <div class="stage-txt"><b>See what we spend</b><span>What compute costs today — by surface, model, generation, and plan. Just the picture; nothing's been changed yet.</span></div>
   </div>
 
   <!-- KPIs -->
@@ -290,7 +290,7 @@
 
   <!-- Spend by surface + by sourcing -->
   <section>
-    <div class="sec-head"><h2>1 · See the spend before touching it</h2><span class="hint">Where the money goes — by product surface and by who serves it</span></div>
+    <div class="sec-head"><h2>1 · See the spend before touching it</h2><span class="hint">Where the money actually goes — by surface, and by which model does the work</span></div>
     <div class="grid2">
       <div class="panel">
         <h3>Monthly compute spend by surface</h3>
@@ -304,51 +304,51 @@
       </div>
       <div class="panel">
         <h3>Own model vs. third-party API</h3>
-        <p class="sub">Ray (in-house — cheap to serve; its training cost shows up only in the fully-loaded lens) vs. Veo / Kling / Seedance (third-party API — a pass-through fee that's COGS too)</p>
+        <p class="sub">Our own model (Ray) is cheap to run — its training cost only shows up in the fully-loaded lens. Veo, Kling, and Seedance are other companies' models we call over an API; that fee is COGS too.</p>
         <table id="sourcingTable"></table>
-        <div class="callout"><b>The margin reality:</b> Ray (own) clears a <b>healthy ~56%</b> (marginal lens); third-party API generations run <b>thin (~8–11%)</b> — you're largely passing the vendor's fee through and can't engineer it away. API is <b>~18% of generations but ~51% of compute spend</b>: the case for steering volume onto Ray as it matures, and pricing API-served clips to protect margin. Toggle to <b>fully-loaded</b> and Ray's edge narrows — it then carries amortized training that the API models don't.</div>
+        <div class="callout"><b>What this says:</b> our own model makes a <b>healthy ~56%</b>. The third-party models make almost nothing (<b>~8–11%</b>) — we're just reselling someone else's API, and there's no way to engineer that fee down. They're only <b>~18% of generations but ~51% of the bill</b>. So: move more volume onto Ray as it gets better, and price API clips to cover their cost. Flip to <b>fully-loaded</b> and Ray's lead shrinks — that's where its training cost finally lands, and the API models carry none.</div>
       </div>
     </div>
   </section>
 
   <!-- Cost per generation -->
   <section>
-    <div class="sec-head"><h2>2 · Cost per generation</h2><span class="hint">The unit economic everything ladders to — cost ≈ frames × resolution × steps × $/GPU-sec</span></div>
+    <div class="sec-head"><h2>2 · Cost per generation</h2><span class="hint">The number everything else is built on. Cost ≈ frames × resolution × steps × $/GPU-second</span></div>
     <div class="panel">
       <h3>Cost &amp; margin per generation, by model and resolution</h3>
-      <p class="sub">Customer pays in <b>credits</b> (Luma's real model: video ≈ 4–280 credits/sec by model, resolution &amp; audio). Revenue here = credits × a <b>blended realized ≈ $0.0026/credit</b> (consumer/Plus-weighted — most volume sits near the Plus list rate, above the lower Pro/Ultra rates). Cost = GPU-seconds priced out. Margins are illustrative.</p>
+      <p class="sub">Customers pay in <b>credits</b> — that's Luma's real model (video runs ~4–280 credits/sec depending on the model, resolution, and audio). Revenue here is credits × <b>~$0.0026 each</b>, a blended rate weighted toward the consumer/Plus tier where most of the volume sits. Cost is the GPU-seconds priced out. The margins are illustrative.</p>
       <table id="cpgTable"></table>
     </div>
   </section>
 
   <!-- Margin by tier -->
   <section>
-    <div class="sec-head"><h2>3 · Margin by plan tier</h2><span class="hint">Contribution margin per plan — catches the margin-negative power-user tail flat pricing hides</span></div>
+    <div class="sec-head"><h2>3 · Margin by plan tier</h2><span class="hint">Profit per plan — this is where a flat price hides the heavy user who costs more than they pay</span></div>
     <div class="panel">
       <h3>Plan economics — Luma Agents tiers</h3>
-      <p class="sub">Real prices &amp; credit grants. A heavy user who burns their full credit allotment on expensive (4K / API) generations can cost more to serve than they pay — a <b>packaging</b> fix, not a compute fix.</p>
+      <p class="sub">Real prices and credit grants. A heavy user who spends their whole grant on expensive (4K or API) clips can cost more than their plan brings in. That's a <b>packaging</b> problem, not an engineering one.</p>
       <table id="tierTable"></table>
     </div>
   </section>
 
   <div class="stage">
     <div class="stage-no">Stage 2</div>
-    <div class="stage-txt"><b>From awareness to impact</b><span>Now act on what's visible — reclaim idle capacity, gate releases on cost, and simulate what light policy &amp; workflow changes do to spend.</span></div>
+    <div class="stage-txt"><b>Now do something about it</b><span>Reclaim idle GPUs, gate model releases on cost, and simulate what a pricing or routing change would actually do to the bill.</span></div>
   </div>
 
   <!-- Utilization + trend -->
   <section>
-    <div class="sec-head"><h2>4 · Fleet utilization &amp; the cost-per-gen trend</h2><span class="hint">Allocation vs. real use is the #1 waste lever; trend catches "better but pricier" model releases</span></div>
+    <div class="sec-head"><h2>4 · Fleet utilization &amp; the cost-per-gen trend</h2><span class="hint">Claimed GPUs vs. GPUs doing real work — the biggest source of waste. The trend catches a model that got better but quietly costs more</span></div>
     <div class="grid2">
       <div class="panel">
         <h3>Allocation vs. realized utilization</h3>
-        <p class="sub">A GPU can be <i>claimed</i> by a team but barely doing useful math. The gap is pure waste — usually the fastest savings.</p>
+        <p class="sub">A team can hold a GPU and barely use it. That gap is pure waste — and usually the fastest money to get back.</p>
         <div id="utilBars"></div>
         <div class="callout" id="reclaimNote"></div>
       </div>
       <div class="panel">
         <h3>Blended cost-per-generation over time</h3>
-        <p class="sub">Each ▲ marks a model release. The job: keep cost-per-gen on the gate so a quality win that raises cost is a <i>deliberate</i> call.</p>
+        <p class="sub">Each ▲ is a model release. Keep cost on the release gate so a quality bump that raises the bill is a choice we make on purpose — not a surprise.</p>
         <div id="trendChart"></div>
       </div>
     </div>
@@ -356,10 +356,10 @@
 
   <!-- Simulator -->
   <section>
-    <div class="sec-head"><h2>5 · Forecast &amp; simulate</h2><span class="hint">Baseline → simulate → re-baseline. Move the drivers; watch COGS and margin respond.</span></div>
+    <div class="sec-head"><h2>5 · Forecast &amp; simulate</h2><span class="hint">Set a baseline, simulate a change, reset the baseline. Drag the inputs and watch cost and margin move.</span></div>
     <div class="panel">
       <h3>Cost &amp; margin simulator</h3>
-      <p class="sub">Set the demand and mix drivers; the model projects monthly generations, COGS, revenue and gross margin. This is the "simulate what it will cost" loop — re-baseline the assumptions whenever research ships a new architecture.</p>
+      <p class="sub">Set the demand and the mix, and it projects monthly generations, cost, revenue, and gross margin. This is the "what would it cost?" loop — I reset the assumptions whenever research ships a new model.</p>
       <div class="sim">
         <div class="controls">
           <div class="control">
@@ -382,7 +382,7 @@
             <label>Few-step distillation adoption <span class="cv" id="v_dist"></span></label>
             <input type="range" id="dist" min="0" max="60" step="5" value="0">
           </div>
-          <p class="src" style="margin-top:4px">Distillation cuts denoising steps → lower cost/clip, gated on quality. Slider = % of eligible jobs moved to the few-step path. <i>Simplified two-bucket model (own / API) — directionally consistent with the panels above, not a second source of truth.</i></p>
+          <p class="src" style="margin-top:4px">Distillation cuts denoising steps, which lowers the cost per clip — but only if quality holds. The slider is the share of eligible jobs on the few-step path. <i>This is a simple own-vs-API model, meant to match the panels above, not replace them.</i></p>
         </div>
         <div class="sim-out" id="simOut"></div>
       </div>
@@ -391,33 +391,33 @@
 
   <!-- Principles -->
   <section>
-    <div class="sec-head"><h2>How I'd run this — operating principles</h2><span class="hint">Lightweight, living, and collaborative — not a new process to feed</span></div>
+    <div class="sec-head"><h2>How I'd run this — operating principles</h2><span class="hint">Lightweight, living, and built with the teams who own the data — not another process to feed</span></div>
     <div class="principles">
       <div class="pcard">
         <span class="pic" style="color:var(--accent);background:var(--accent-soft)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-feather"/></svg></span>
         <b>Lightweight, not heavy process</b>
-        <p>One dashboard plus one weekly review. Visibility first; formal control only where transparency leaves a gap. No chargeback bureaucracy, no FinOps committee, no Gantt to maintain.</p>
+        <p>One dashboard and one weekly review. Make things visible first; add formal controls only where visibility isn't enough. No chargeback paperwork, no FinOps committee, no Gantt chart to feed.</p>
       </div>
       <div class="pcard">
         <span class="pic" style="color:var(--good);background:var(--good-soft)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-recycle"/></svg></span>
         <b>A living model, not a rebuild each release</b>
-        <p>When a new model ships, update the rate card and re-baseline the cells it touches — don't redo the whole thing. The structure stays put; only the affected numbers refresh. Re-baselining is a 30-minute task, not a project.</p>
+        <p>When a new model ships, I update the rate card and re-baseline only the parts it touches — not the whole thing. The structure stays; the numbers refresh. It's a 30-minute job, not a project.</p>
       </div>
       <div class="pcard">
         <span class="pic" style="color:var(--enterprise);background:color-mix(in srgb,var(--enterprise) 15%,var(--panel))"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-users"/></svg></span>
         <b>Partner, don't police</b>
-        <p>Strengthen the workflows the data-owners already run: <b>Finance / FP&amp;A</b> for the cost rate card, <b>Sales</b> for enterprise contract structure &amp; margin, <b>Analytics &amp; Eng</b> for telemetry, attribution tags and the pipeline. I'm the join, not a new silo.</p>
+        <p>Build on the workflows the data owners already run: <b>Finance / FP&amp;A</b> for the cost rate card, <b>Sales</b> for enterprise contracts and margin, and <b>Analytics &amp; Eng</b> for the telemetry, tagging, and pipeline. My job is to connect them, not to start a new silo.</p>
       </div>
       <div class="pcard">
         <span class="pic" style="color:var(--warn);background:var(--warn-soft)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-book"/></svg></span>
         <b>Educate so the team self-serves</b>
-        <p>Make the numbers legible. Once people can see what a 4K clip or an API route actually costs, they make the trade themselves — awareness drives the decision, and I don't have to own every call.</p>
+        <p>Make the numbers easy to read. Once people can see what a 4K clip or an API route really costs, they make the call themselves — and I don't have to be in the room for every decision.</p>
       </div>
     </div>
   </section>
 
   <footer>
-    <p><b>What this is.</b> A mock decision surface built for the Luma TPM technical session — to make the COGS conversation concrete rather than abstract. Every number is <b>illustrative</b> and chosen to be order-of-magnitude plausible; none are Luma's real figures. The <i>structure</i> — credits as the customer-facing unit, Ray vs. third-party API split, marginal vs. fully-loaded margin, allocation-vs-utilization gap — mirrors how Luma actually prices and serves today.</p>
+    <p><b>What this is.</b> A mock I built for the Luma TPM technical session, to make the COGS conversation concrete instead of abstract. Every number is <b>illustrative</b> — roughly the right size, but none are Luma's real figures. The structure is real, though: credits as the customer-facing unit, our own model vs. third-party APIs, marginal vs. fully-loaded margin, and the gap between claimed and used GPUs all mirror how Luma prices and serves today.</p>
     <p class="src">Pricing structure grounded in Luma's public pricing (Plus $30 / 10k credits · Pro $90 / 40k · Ultra $300 / 150k; video ≈ 4–280 credits/sec by model, resolution &amp; audio; Ray in-house + Veo/Kling/Seedance via API; Dream Machine, Luma Agents, and Agents API are separate products with separate credit wallets). Built with zero dependencies — view source.</p>
   </footer>
 </div>
@@ -441,9 +441,9 @@ const surfaces = [
 // responds to the marginal/fully-loaded toggle. Ray healthy; third-party API thin.
 const sourcing = [
   {model:'Ray (in-house)', kind:'own', share:82, costClip:0.14, revClip:0.32,  note:'Healthy — training amortized'},
-  {model:'Veo (API)',      kind:'api', share:8,  costClip:0.86, revClip:0.935, note:'Thin — vendor fee pass-through'},
-  {model:'Kling (API)',    kind:'api', share:6,  costClip:0.58, revClip:0.652, note:'Thin — overflow / capability gap'},
-  {model:'Seedance (API)', kind:'api', share:4,  costClip:0.44, revClip:0.489, note:'Thin — burst overflow'},
+  {model:'Veo (API)',      kind:'api', share:8,  costClip:0.86, revClip:0.935, note:'Thin — reselling the vendor'},
+  {model:'Kling (API)',    kind:'api', share:6,  costClip:0.58, revClip:0.652, note:'Thin — fills a capability gap'},
+  {model:'Seedance (API)', kind:'api', share:4,  costClip:0.44, revClip:0.489, note:'Thin — covers demand spikes'},
 ];
 
 // cost per generation by model x resolution
@@ -495,8 +495,8 @@ function blendedRev(){ return sourcing.reduce((a,s)=>a + s.share/100 * s.revClip
 
 function renderLensNote(){
   document.getElementById('lensNote').innerHTML = lens==='marginal'
-    ? '<b>Marginal lens:</b> serving cost only (GPU-seconds + API pass-through). The right number for pricing, rate-limit and per-generation decisions.'
-    : '<b>Fully-loaded lens:</b> serving + amortized training compute + idle/reserved waste. The "is this product actually profitable" number. Adds ~'+Math.round((LOADED.trainingAmort+LOADED.idleWaste)*100)+'% to marginal cost here.';
+    ? '<b>Marginal lens:</b> just the cost to serve a clip (GPU-seconds + any API fee). This is the number to price and rate-limit against.'
+    : '<b>Fully-loaded lens:</b> serving + training spread across clips + idle and reserved waste. This is the "does this actually make money?" number — about '+Math.round((LOADED.trainingAmort+LOADED.idleWaste)*100)+'% higher than marginal here.';
 }
 
 function renderKPIs(){
@@ -513,7 +513,7 @@ function renderKPIs(){
   const k = [
     {label:'Monthly compute spend', val:fmt$(totalSpend), delta:'+9% MoM', cls:'up', ic:'database', tint:'var(--accent)'},
     {label:'Blended cost / generation', val:fmtC(bCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat', ic:'gauge', tint:'var(--accent)'},
-    {label:'Gross margin / generation', val:fmtPct(margin), delta:'blend hides 8–11% API tail', cls:'flat', ic:'percent', tint:'var(--good)'},
+    {label:'Gross margin / generation', val:fmtPct(margin), delta:'blended — API clips ~8–11%', cls:'flat', ic:'percent', tint:'var(--good)'},
     {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up', ic:'cpu', tint:'var(--warn)'},
     {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down', ic:'recycle', tint:'var(--good)'},
     {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up', ic:'shuffle', tint:'var(--bad)'},
@@ -542,7 +542,7 @@ function renderSourcing(){
     const cost = s.costClip*(s.kind==='own'?loadedMult():1);
     const margin = (s.revClip-cost)/s.revClip*100;
     const mcls = margin>40?'good':margin>20?'warn':'bad';
-    const note = s.kind==='own' ? (lens==='loaded' ? 'Now carries amortized training' : 'Cheap in-house serving — no training in this lens') : s.note;
+    const note = s.kind==='own' ? (lens==='loaded' ? 'Now includes its training cost' : 'Cheap to run — no training in this lens') : s.note;
     return `<tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
     <td class="num">${s.share}%</td>
     <td class="num">${fmtC(cost)}</td>
@@ -602,7 +602,7 @@ function renderUtil(){
     </div><div class="amt">${u.claimed-u.realized} idle</div></div>`).join('');
   const idle = util.reduce((a,u)=>a+(u.claimed-u.realized),0);
   document.getElementById('reclaimNote').innerHTML =
-    `<b>Reclaim the trough:</b> the experimentation pool runs ${util[2].claimed-util[2].realized} pts under its claim. Backfill it with <i>short, restartable, topology-light</i> work — batch/offline gen, evals, data-prep — not multi-node training.`;
+    `<b>Reclaim the slack:</b> the experimentation pool sits ${util[2].claimed-util[2].realized} points below what it's holding. Fill it with <i>short, interruptible jobs that don't need fast interconnect</i> — batch generation, evals, data prep — not big multi-node training.`;
 }
 
 function renderTrend(){
@@ -665,14 +665,14 @@ function runSim(){
   const out=[
     {l:'Generations / month', v:(gensMo/1e6).toFixed(1)+'M', x:`${dau.toLocaleString()} creators × ${gpu}/day`},
     {l:'Avg cost / generation', v:fmtC(costClip), x:`${(apiShare*100).toFixed(0)}% on API models`},
-    {l:'Monthly COGS', v:fmt$(cogs), x:'serving cost only'},
-    {l:'Monthly revenue (est.)', v:fmt$(revenue), x:'credit consumption'},
+    {l:'Monthly cost (COGS)', v:fmt$(cogs), x:'serving cost only'},
+    {l:'Monthly revenue (est.)', v:fmt$(revenue), x:'from credits spent'},
   ];
   const mcls = margin>40?'var(--good)':margin>20?'var(--warn)':'var(--bad)';
   document.getElementById('simOut').innerHTML =
     `<div class="out-card hero"><div class="l">Projected gross margin</div>
        <div class="v" style="color:${mcls};font-size:30px">${margin.toFixed(0)}%</div>
-       <div class="x">${fmt$(revenue-cogs)} contribution / month · move the drivers to pressure-test it</div></div>`
+       <div class="x">${fmt$(revenue-cogs)} gross profit a month · drag the sliders to stress-test it</div></div>`
     + out.map(o=>`<div class="out-card"><div class="l">${o.l}</div><div class="v">${o.v}</div><div class="x">${o.x}</div></div>`).join('');
 }
 
