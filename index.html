@@ -95,9 +95,132 @@
   .callout{background:var(--accent-soft);border:1px solid #cfe4ff;border-radius:12px;padding:13px 15px;font-size:12.5px;color:#0b5fc0;margin-top:14px}
   .callout b{color:#084c9e}
 </style>
+<style>
+  /* ---- Claude design pass: tokens, dark mode, motion, icons ---- */
+  :root{
+    --bg:#f4f4f7; --panel:#ffffff; --panel-2:#fbfbfd;
+    --ink:#16161a; --muted:#5f5f68; --faint:#8a8a93;
+    --line:#e5e5ea; --line-2:#eeeef2;
+    --accent:#0a84ff; --accent-ink:#0a63cc;
+    --good:#12985a; --warn:#b97c0a; --bad:#dd362c;
+    --own:#0a84ff; --api:#7c5cff; --api-ink:#5b34e0;
+    --consumer:#0a84ff; --enterprise:#6366f1; --research:#0fa896;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(18,18,40,.05),0 10px 30px -12px rgba(18,18,50,.12);
+    --shadow-lg:0 2px 6px rgba(18,18,40,.07),0 22px 50px -16px rgba(18,18,55,.22);
+    --toolbar-bg:rgba(244,244,247,.78);
+    --ease:cubic-bezier(.22,.7,.2,1);
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --bg:#08080b; --panel:#161619; --panel-2:#1b1b20;
+    --ink:#f2f2f6; --muted:#9a9aa4; --faint:#6c6c76;
+    --line:#27272e; --line-2:#202026;
+    --accent:#409cff; --accent-ink:#8cc4ff;
+    --good:#2fc476; --warn:#e0a93c; --bad:#ff5b50;
+    --own:#409cff; --api:#a78bfa; --api-ink:#c9b8ff;
+    --consumer:#409cff; --enterprise:#818cf8; --research:#2dd4bf;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 14px 34px -14px rgba(0,0,0,.7);
+    --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 26px 64px -18px rgba(0,0,0,.85);
+    --toolbar-bg:rgba(10,10,13,.72);
+  }}
+  :root[data-theme="light"]{
+    --bg:#f4f4f7; --panel:#ffffff; --panel-2:#fbfbfd; --ink:#16161a; --muted:#5f5f68; --faint:#8a8a93;
+    --line:#e5e5ea; --line-2:#eeeef2; --accent:#0a84ff; --accent-ink:#0a63cc;
+    --good:#12985a; --warn:#b97c0a; --bad:#dd362c; --own:#0a84ff; --api:#7c5cff; --api-ink:#5b34e0;
+    --consumer:#0a84ff; --enterprise:#6366f1; --research:#0fa896; --toolbar-bg:rgba(244,244,247,.78);
+    --shadow:0 1px 2px rgba(18,18,40,.05),0 10px 30px -12px rgba(18,18,50,.12);
+    --shadow-lg:0 2px 6px rgba(18,18,40,.07),0 22px 50px -16px rgba(18,18,55,.22);
+  }
+  :root[data-theme="dark"]{
+    --bg:#08080b; --panel:#161619; --panel-2:#1b1b20; --ink:#f2f2f6; --muted:#9a9aa4; --faint:#6c6c76;
+    --line:#27272e; --line-2:#202026; --accent:#409cff; --accent-ink:#8cc4ff;
+    --good:#2fc476; --warn:#e0a93c; --bad:#ff5b50; --own:#409cff; --api:#a78bfa; --api-ink:#c9b8ff;
+    --consumer:#409cff; --enterprise:#818cf8; --research:#2dd4bf; --toolbar-bg:rgba(10,10,13,.72);
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 14px 34px -14px rgba(0,0,0,.7);
+    --shadow-lg:0 2px 8px rgba(0,0,0,.55),0 26px 64px -18px rgba(0,0,0,.85);
+  }
+  :root{
+    --accent-soft:color-mix(in srgb, var(--accent) 13%, var(--panel));
+    --good-soft:color-mix(in srgb, var(--good) 15%, var(--panel));
+    --warn-soft:color-mix(in srgb, var(--warn) 17%, var(--panel));
+    --bad-soft:color-mix(in srgb, var(--bad) 14%, var(--panel));
+  }
+  body{background:var(--bg);color:var(--ink);transition:background .3s var(--ease),color .3s var(--ease)}
+  body::before{content:"";position:fixed;inset:0 0 auto 0;height:340px;z-index:-1;pointer-events:none;
+    background:radial-gradient(900px 320px at 78% -40px, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%)}
+  .wrap{max-width:1200px}
+  .panel,.kpi,.out-card{transition:background .3s var(--ease),border-color .25s var(--ease),box-shadow .3s var(--ease),transform .25s var(--ease)}
+  .panel{border-radius:18px;border-color:var(--line)}
+  .panel:hover{border-color:color-mix(in srgb, var(--accent) 22%, var(--line))}
+  .kpi{border-radius:16px;padding:15px 16px 14px;position:relative;overflow:hidden}
+  .kpi:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:color-mix(in srgb, var(--accent) 26%, var(--line))}
+  .kpi-top{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .kpi .label{margin:0;min-height:0;flex:1;font-size:11.5px;line-height:1.25;font-weight:560}
+  .kpi .val{font-size:26px;letter-spacing:-.03em}
+  .kpi-ic{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;flex:none}
+  .kpi-ic .ic{width:17px;height:17px}
+  .ic{width:1em;height:1em;display:inline-block;vertical-align:-.14em;fill:none;stroke:currentColor;
+    stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .sec-head h2{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
+  .sec-ic{width:15px;height:15px;color:var(--accent);opacity:.95}
+  .badge{color:var(--warn);background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+  .toolbar{display:flex;align-items:center;gap:10px}
+  .toggle{background:color-mix(in srgb,var(--ink) 7%,var(--panel));border:1px solid var(--line)}
+  .toggle button{color:var(--muted);transition:color .2s,background .2s,box-shadow .2s}
+  .toggle button.on{background:var(--panel);color:var(--ink)}
+  .theme-btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:560;
+    color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:7px 12px;cursor:pointer;transition:all .2s var(--ease)}
+  .theme-btn:hover{color:var(--ink);border-color:var(--accent);transform:translateY(-1px)}
+  .theme-btn .ic{width:15px;height:15px}
+  .tag.own{background:var(--accent-soft);color:var(--accent-ink)}
+  .tag.api{background:color-mix(in srgb,var(--api) 15%,var(--panel));color:var(--api-ink)}
+  .pill{transition:background .25s,color .25s}
+  .pill.good{background:var(--good-soft);color:var(--good)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .pill.bad{background:var(--bad-soft);color:var(--bad)}
+  .bar-track{background:color-mix(in srgb,var(--ink) 6%,var(--panel))}
+  .bar-fill{position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+    background-image:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,0))}
+  @media (prefers-reduced-motion: no-preference){
+    .bar-fill{animation:barIn .85s var(--ease) both}
+    .kpi{animation:cardIn .5s var(--ease) both}
+  }
+  @keyframes barIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+  @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .out-card.hero{background:linear-gradient(160deg, color-mix(in srgb,var(--accent) 11%,var(--panel)), color-mix(in srgb,var(--accent) 4%,var(--panel)));
+    border-color:color-mix(in srgb,var(--accent) 26%,var(--line))}
+  .out-card{background:var(--panel-2)}
+  .callout{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 28%,var(--line));color:var(--accent-ink)}
+  .callout b{color:var(--accent-ink)}
+  .gridline{stroke:var(--line-2)} .axis{fill:var(--faint)}
+  a{color:var(--accent)} a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent);
+    display:inline-block;animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 55%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+</style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 13.5l4-4"/><circle cx="12" cy="13.5" r="1.2" fill="currentColor" stroke="none"/><path d="M4 17a8.5 8.5 0 1 1 16 0"/></symbol>
+  <symbol id="i-percent" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9.5 2v3M14.5 2v3M9.5 19v3M14.5 19v3M2 9.5h3M2 14.5h3M19 9.5h3M19 14.5h3"/></symbol>
+  <symbol id="i-recycle" viewBox="0 0 24 24"><path d="M4 13a8 8 0 0 1 13.5-5.8L20 9"/><path d="M20 4v5h-5"/><path d="M20 11a8 8 0 0 1-13.5 5.8L4 15"/><path d="M4 20v-5h5"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 4h4v4"/><path d="M4 20 20 4"/><path d="M20 16v4h-4"/><path d="M14.5 14.5 20 20"/><path d="M4 4l5 5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.4-7 10-7 10 7 10 7-3.4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M14.6 9.3c-.6-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.9-2.6 2.1S10.5 12 12 12s2.6.9 2.6 2.1-1.1 2.1-2.6 2.1c-1.1 0-2-.5-2.6-1.3"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3.5 13 12 18l8.5-5"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M18 6h2M4 12h2M11 12h9M4 18h6M15 18h5"/><circle cx="15.5" cy="6" r="2.1"/><circle cx="8" cy="12" r="2.1"/><circle cx="12.5" cy="18" r="2.1"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.6 6.6 0 0 0 21 12.8Z"/></symbol>
+</defs></svg>
+
 <div class="wrap">
+  <h2 class="sr-only">Compute COGS Control Tower — an interactive mock dashboard showing GPU spend by surface, cost and margin per generation, plan-tier economics, fleet utilization, and a forecast simulator. All figures illustrative.</h2>
 
   <header class="top">
     <div class="title">
@@ -105,10 +228,13 @@
       <p>One screen: where every GPU-dollar goes, what each generation costs to serve, and whether each surface and plan tier is actually margin-positive. Visibility first — the team decides what to act on.</p>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
-      <span class="badge">● Mock / illustrative data</span>
-      <div class="toggle" id="lensToggle">
-        <button data-lens="marginal" class="on">Marginal margin</button>
-        <button data-lens="loaded">Fully-loaded</button>
+      <div class="toolbar">
+        <span class="badge"><span class="live-dot"></span>Mock / illustrative data</span>
+        <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode"></button>
+      </div>
+      <div class="toggle" id="lensToggle" role="tablist" aria-label="Margin lens">
+        <button data-lens="marginal" class="on" role="tab">Marginal margin</button>
+        <button data-lens="loaded" role="tab">Fully-loaded</button>
       </div>
     </div>
   </header>
@@ -309,16 +435,22 @@ function renderKPIs(){
   const apiSpend = sourcing.filter(s=>s.kind==='api').reduce((a,s)=>a+s.share/100*s.costClip,0);
   const apiSpendShare = apiSpend/blendedCost(false)*100;
   const k = [
-    {label:'Monthly compute spend', val:fmt$(totalSpend), delta:'+9% MoM', cls:'up'},
-    {label:'Blended cost / generation', val:fmtC(bCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat'},
-    {label:'Gross margin / generation', val:fmtPct(margin), delta:'blend hides 8–11% API tail', cls:'flat'},
-    {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up'},
-    {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down'},
-    {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up'},
+    {label:'Monthly compute spend', val:fmt$(totalSpend), delta:'+9% MoM', cls:'up', ic:'database', tint:'var(--accent)'},
+    {label:'Blended cost / generation', val:fmtC(bCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat', ic:'gauge', tint:'var(--accent)'},
+    {label:'Gross margin / generation', val:fmtPct(margin), delta:'blend hides 8–11% API tail', cls:'flat', ic:'percent', tint:'var(--good)'},
+    {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up', ic:'cpu', tint:'var(--warn)'},
+    {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down', ic:'recycle', tint:'var(--good)'},
+    {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up', ic:'shuffle', tint:'var(--bad)'},
   ];
-  document.getElementById('kpis').innerHTML = k.map(x=>`
-    <div class="kpi"><div class="label">${x.label}</div><div class="val">${x.val}</div>
-    <div class="delta ${x.cls}">${x.delta}</div></div>`).join('');
+  document.getElementById('kpis').innerHTML = k.map((x,i)=>`
+    <div class="kpi" style="animation-delay:${i*40}ms">
+      <div class="kpi-top">
+        <span class="kpi-ic" style="color:${x.tint};background:color-mix(in srgb, ${x.tint} 14%, var(--panel))">${ic(x.ic)}</span>
+        <div class="label">${x.label}</div>
+      </div>
+      <div class="val">${x.val}</div>
+      <div class="delta ${x.cls}">${x.delta}</div>
+    </div>`).join('');
 }
 
 function renderSurface(){
@@ -417,9 +549,13 @@ function renderTrend(){
   const dots=series.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--accent)"/>`).join('');
   document.getElementById('trendChart').innerHTML=`
     <svg viewBox="0 0 ${W} ${H}" width="100%" style="overflow:visible">
+      <defs><linearGradient id="tgrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--accent)" stop-opacity="0.30"/>
+        <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+      </linearGradient></defs>
       ${grid}
-      <polygon points="${area}" fill="var(--accent-soft)" opacity=".6"/>
-      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <polygon points="${area}" fill="url(#tgrad)"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
       ${dots}${marks}
     </svg>
     <div class="legend" style="margin-top:2px">${releases.map(r=>`<span><i class="dot" style="background:var(--accent)"></i>wk ${r.i+1}: ${r.label}</span>`).join('')}</div>`;
@@ -464,15 +600,28 @@ function runSim(){
 }
 
 // ---------- wire ----------
-function renderAll(){renderLensNote();renderKPIs();renderSurface();renderSourcing();renderCPG();renderTiers();renderUtil();renderTrend();}
+function ic(id,cls){return '<svg class="ic '+(cls||'')+'" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-'+id+'"/></svg>';}
+function renderStatic(){renderSurface();renderUtil();}
+function renderAll(){renderLensNote();renderKPIs();renderSourcing();renderCPG();renderTiers();renderTrend();}
+
+const root=document.documentElement, themeBtn=document.getElementById('themeBtn');
+const savedTheme=localStorage.getItem('cogs-theme'); if(savedTheme) root.setAttribute('data-theme',savedTheme);
+function isDark(){const t=root.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;}
+function paintThemeBtn(){themeBtn.innerHTML=ic(isDark()?'sun':'moon')+'<span>'+(isDark()?'Light':'Dark')+'</span>';}
+themeBtn.addEventListener('click',()=>{const d=!isDark();root.setAttribute('data-theme',d?'dark':'light');localStorage.setItem('cogs-theme',d?'dark':'light');paintThemeBtn();});
+paintThemeBtn();
+
+const secIcons=['eye','coin','layers','activity','sliders'];
+document.querySelectorAll('.sec-head h2').forEach((h,i)=>{if(secIcons[i])h.insertAdjacentHTML('afterbegin',ic(secIcons[i],'sec-ic'));});
+
 document.getElementById('lensToggle').addEventListener('click',e=>{
-  if(!e.target.dataset.lens)return;
-  lens=e.target.dataset.lens;
-  document.querySelectorAll('#lensToggle button').forEach(b=>b.classList.toggle('on',b.dataset.lens===lens));
+  const b=e.target.closest('button'); if(!b||!b.dataset.lens)return;
+  lens=b.dataset.lens;
+  document.querySelectorAll('#lensToggle button').forEach(x=>x.classList.toggle('on',x.dataset.lens===lens));
   renderAll();
 });
 ['dau','gpu','api','res','dist'].forEach(id=>document.getElementById(id).addEventListener('input',runSim));
-renderAll();runSim();
+renderStatic();renderAll();runSim();
 </script>
 </body>
 </html>
