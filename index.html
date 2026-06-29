@@ -319,7 +319,6 @@
         <h3>Own model vs. third-party API</h3>
         <p class="sub">Our own model (Ray) is cheap to run — its training cost only shows up in the fully-loaded lens. Veo, Kling, and Seedance are other companies' models we call over an API; that fee is COGS too.</p>
         <table id="sourcingTable"></table>
-        <div class="callout"><b>What this says:</b> our own model makes a <b>healthy ~51%</b>. The third-party models make almost nothing (<b>~8–11%</b>) — we're just reselling someone else's API, and there's no way to engineer that fee down. They're only <b>~18% of generations but ~49% of the bill</b>. So: move more volume onto Ray as it gets better, and price API clips to cover their cost. Flip to <b>fully-loaded</b> and Ray's lead shrinks — that's where its training cost finally lands, and the API models carry none.</div>
       </div>
     </div>
   </section>
@@ -357,7 +356,6 @@
         <h3>Allocation vs. realized utilization</h3>
         <p class="sub">A team can hold a GPU and barely use it. That gap is pure waste — and usually the fastest money to get back.</p>
         <div id="utilBars"></div>
-        <div class="callout" id="reclaimNote"></div>
       </div>
       <div class="panel">
         <h3>Blended cost-per-generation over time</h3>
@@ -390,10 +388,6 @@
           <div class="control">
             <label>Avg resolution / length premium <span class="cv" id="v_res"></span></label>
             <input type="range" id="res" min="50" max="250" step="10" value="100">
-          </div>
-          <div class="control">
-            <label>Few-step distillation adoption <span class="cv" id="v_dist"></span></label>
-            <input type="range" id="dist" min="0" max="60" step="5" value="0">
           </div>
         </div>
         <div class="sim-out" id="simOut"></div>
@@ -614,9 +608,6 @@ function renderUtil(){
     <div class="bar-track">
       <div class="bar-fill" style="width:${u.realized}%;background:${u.color}">${u.realized}%</div>
     </div><div class="amt">${u.claimed-u.realized} idle</div></div>`).join('');
-  const idle = util.reduce((a,u)=>a+(u.claimed-u.realized),0);
-  document.getElementById('reclaimNote').innerHTML =
-    `<b>Reclaim the slack:</b> the experimentation pool sits ${util[2].claimed-util[2].realized} points below what it's holding. Fill it with <i>short, interruptible jobs that don't need fast interconnect</i> — batch generation, evals, data prep — not big multi-node training.`;
 }
 
 function renderTrend(){
@@ -658,17 +649,15 @@ function runSim(){
   const gpu=+document.getElementById('gpu').value;
   const apiShare=+document.getElementById('api').value/100;
   const resPrem=+document.getElementById('res').value/100;
-  const dist=+document.getElementById('dist').value/100;
   document.getElementById('v_dau').textContent=dau.toLocaleString();
   document.getElementById('v_gpu').textContent=gpu;
   document.getElementById('v_api').textContent=(apiShare*100).toFixed(0)+'%';
   document.getElementById('v_res').textContent=(resPrem*100).toFixed(0)+'%';
-  document.getElementById('v_dist').textContent=(dist*100).toFixed(0)+'%';
 
   const gensMo = dau*gpu*30;
-  // cost basis matches the dashboard: own ~0.14/clip, blended API ~0.67; resolution
-  // scales both; distillation cuts own-model step cost only (API is pass-through).
-  const ownCost = 0.14*loadedMult()*resPrem*(1-dist*0.45); // own carries idle (both lenses) + training (loaded)
+  // cost basis matches the dashboard: own ~0.14/clip, blended API ~0.67;
+  // resolution scales both (API is pass-through).
+  const ownCost = 0.14*loadedMult()*resPrem; // own carries idle (both lenses) + training (loaded)
   const apiCost = 0.67*resPrem;
   const costClip = ownCost*(1-apiShare) + apiCost*apiShare;
   const cogs = gensMo*costClip;
@@ -711,7 +700,7 @@ document.getElementById('lensToggle').addEventListener('click',e=>{
   document.querySelectorAll('#lensToggle button').forEach(x=>{const on=x.dataset.lens===lens;x.classList.toggle('on',on);x.setAttribute('aria-selected',on);});
   renderAll();runSim(); // runSim too, so the simulator hero responds to the lens
 });
-['dau','gpu','api','res','dist'].forEach(id=>document.getElementById(id).addEventListener('input',runSim));
+['dau','gpu','api','res'].forEach(id=>document.getElementById(id).addEventListener('input',runSim));
 renderStatic();renderAll();runSim();
 setTimeout(()=>document.body.classList.add('anim-done'),700); // entrance anims run once, not on every re-render
 </script>
