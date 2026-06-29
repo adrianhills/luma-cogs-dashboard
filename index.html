@@ -274,8 +274,8 @@
         <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode"></button>
       </div>
       <div class="toggle" id="lensToggle" role="tablist" aria-label="Margin lens">
-        <button data-lens="marginal" class="on" role="tab">Marginal margin</button>
-        <button data-lens="loaded" role="tab">Fully-loaded</button>
+        <button data-lens="marginal" class="on" role="tab" aria-selected="true">Marginal margin</button>
+        <button data-lens="loaded" role="tab" aria-selected="false">Fully-loaded</button>
       </div>
     </div>
   </header>
@@ -286,9 +286,9 @@
     <div class="panel info-panel">
       <div class="info-head"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-info"/></svg><h3>How to read this — a 5-minute info session</h3></div>
       <div class="info-grid">
-        <div><b>1 · See the cost</b><p>The top half just shows the bill — by surface, model, generation, and plan. Nothing's been changed yet. You can't fix what you can't see, so I start here.</p></div>
+        <div><b>1 · See the cost</b><p>The top half just shows the bill — by surface, model, generation, and plan.</p></div>
         <div><b>2 · See the impact</b><p>The bottom half shows what small changes do to that bill — reclaiming idle GPUs, putting cost on the model-release gate, and a simulator you can drag yourself.</p></div>
-        <div><b>3 · Two honest lenses</b><p>Flip between the two lenses. <i>Marginal</i> is just the cost to serve a clip — use it to set prices. <i>Fully-loaded</i> adds training and idle waste — use it to ask whether something really makes money. Same numbers, two answers.</p></div>
+        <div><b>3 · Two honest lenses</b><p>Flip between the two lenses. <i>Marginal</i> is the cost to serve a clip plus the idle capacity we pay for anyway — use it to set prices. <i>Fully-loaded</i> also adds amortized training — use it to ask whether something really makes money. Same numbers, two answers.</p></div>
       </div>
     </div>
   </section>
@@ -319,7 +319,7 @@
         <h3>Own model vs. third-party API</h3>
         <p class="sub">Our own model (Ray) is cheap to run — its training cost only shows up in the fully-loaded lens. Veo, Kling, and Seedance are other companies' models we call over an API; that fee is COGS too.</p>
         <table id="sourcingTable"></table>
-        <div class="callout"><b>What this says:</b> our own model makes a <b>healthy ~56%</b>. The third-party models make almost nothing (<b>~8–11%</b>) — we're just reselling someone else's API, and there's no way to engineer that fee down. They're only <b>~18% of generations but ~51% of the bill</b>. So: move more volume onto Ray as it gets better, and price API clips to cover their cost. Flip to <b>fully-loaded</b> and Ray's lead shrinks — that's where its training cost finally lands, and the API models carry none.</div>
+        <div class="callout"><b>What this says:</b> our own model makes a <b>healthy ~51%</b>. The third-party models make almost nothing (<b>~8–11%</b>) — we're just reselling someone else's API, and there's no way to engineer that fee down. They're only <b>~18% of generations but ~49% of the bill</b>. So: move more volume onto Ray as it gets better, and price API clips to cover their cost. Flip to <b>fully-loaded</b> and Ray's lead shrinks — that's where its training cost finally lands, and the API models carry none.</div>
       </div>
     </div>
   </section>
@@ -351,7 +351,7 @@
 
   <!-- Utilization + trend -->
   <section>
-    <div class="sec-head"><h2>4 · Fleet utilization &amp; the cost-per-gen trend</h2><span class="hint">Claimed GPUs vs. GPUs doing real work — the biggest source of waste. The trend catches a model that got better but quietly costs more</span></div>
+    <div class="sec-head"><h2>4 · Fleet utilization &amp; the cost-per-gen trend</h2></div>
     <div class="grid2">
       <div class="panel">
         <h3>Allocation vs. realized utilization</h3>
@@ -377,7 +377,7 @@
         <div class="controls">
           <div class="control">
             <label>Daily active creators <span class="cv" id="v_dau"></span></label>
-            <input type="range" id="dau" min="5000" max="500000" step="5000" value="40000">
+            <input type="range" id="dau" min="50000" max="1000000" step="10000" value="400000">
           </div>
           <div class="control">
             <label>Generations / creator / day <span class="cv" id="v_gpu"></span></label>
@@ -395,7 +395,6 @@
             <label>Few-step distillation adoption <span class="cv" id="v_dist"></span></label>
             <input type="range" id="dist" min="0" max="60" step="5" value="0">
           </div>
-          <p class="src" style="margin-top:4px">Distillation cuts denoising steps, which lowers the cost per clip — but only if quality holds. The slider is the share of eligible jobs on the few-step path. <i>This is a simple own-vs-API model, meant to match the panels above, not replace them.</i></p>
         </div>
         <div class="sim-out" id="simOut"></div>
       </div>
@@ -437,17 +436,17 @@
 
 <script>
 // ---------- illustrative data (mock) ----------
-const fmt$ = n => (n<0?'-$':'$')+(a=>a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3).toFixed(0)+'k':a.toFixed(2))(Math.abs(n));
+const fmt$ = n => (n<0?'-$':'$')+(a=>a>=1e9?(a/1e9).toFixed(2)+'B':a>=1e6?(a/1e6).toFixed(2)+'M':a>=1e3?(a/1e3).toFixed(0)+'k':a.toFixed(2))(Math.abs(n));
 const fmtPct = n => n.toFixed(0)+'%';
 const fmtC = n => '$'+n.toFixed(3);
 const fmtC4 = n => '$'+n.toFixed(4);
 
-// surfaces: monthly compute spend ($). Serving (DM + Agents) = 1.70M ties to the
+// surfaces: monthly compute spend ($). Serving (DM + Agents = $18M) ties to the
 // simulator default COGS; Research/training is separate (not per-generation).
 const surfaces = [
-  {name:'Dream Machine (consumer)', val:1000000, color:'var(--consumer)'},
-  {name:'Luma Agents + API (enterprise)', val:700000, color:'var(--enterprise)'},
-  {name:'Research / training', val:1000000, color:'var(--research)'},
+  {name:'Dream Machine (consumer)', val:11000000, color:'var(--consumer)'},
+  {name:'Luma Agents + API (enterprise)', val:7000000, color:'var(--enterprise)'},
+  {name:'Research / training', val:9000000, color:'var(--research)'},
 ];
 
 // own vs api sourcing — share = % of generations; costClip/revClip drive margin so it
@@ -490,26 +489,28 @@ const util = [
 ];
 
 // cost-per-gen trend (12 wks, blended $/gen — same scale as the KPI) + release markers
-const trend = [0.258,0.255,0.252,0.249,0.275,0.268,0.260,0.253,0.247,0.242,0.239,0.236];
+const trend = [0.273,0.270,0.267,0.264,0.291,0.284,0.275,0.268,0.261,0.256,0.253,0.250];
 const releases = [{i:4,label:'Ray v3 (quality↑, cost↑)'},{i:9,label:'Few-step distill'}];
 
-// fully-loaded uplift factors
-const LOADED = {trainingAmort:0.30, idleWaste:0.12}; // adds to marginal cost for fully-loaded lens
+// own-model cost factors. Idle/reserved capacity is paid either way, so it's in BOTH
+// lenses; amortized training is the only thing the toggle adds. (API has neither.)
+const LOADED = {idleWaste:0.12, trainingAmort:0.30};
 
 let lens = 'marginal';
 
 // ---------- renderers ----------
-function loadedMult(){ return lens==='loaded' ? (1+LOADED.trainingAmort+LOADED.idleWaste) : 1; }
-// single source of truth for blended $/gen — own-model cost carries the fully-loaded
-// uplift, API does not (no training to amortize). Used by KPI strip AND trend chart.
-function blendedCost(loaded){ const m = loaded ? (1+LOADED.trainingAmort+LOADED.idleWaste) : 1;
-  return sourcing.reduce((a,s)=>a + s.share/100 * s.costClip * (s.kind==='own'?m:1), 0); }
+function ownMult(loaded){ return 1 + LOADED.idleWaste + (loaded ? LOADED.trainingAmort : 0); } // 1.12 marginal · 1.42 loaded
+function loadedMult(){ return ownMult(lens==='loaded'); }
+// single source of truth for blended $/gen. Own-model cost carries idle (both lenses)
+// plus training (loaded only); API is pure pass-through. Used by KPI strip AND trend.
+function blendedCost(loaded){ return sourcing.reduce((a,s)=>a + s.share/100 * s.costClip * (s.kind==='own'?ownMult(loaded):1), 0); }
 function blendedRev(){ return sourcing.reduce((a,s)=>a + s.share/100 * s.revClip, 0); }
 
 function renderLensNote(){
+  const up = Math.round((blendedCost(true)/blendedCost(false)-1)*100);
   document.getElementById('lensNote').innerHTML = lens==='marginal'
-    ? '<b>Marginal lens:</b> just the cost to serve a clip (GPU-seconds + any API fee). This is the number to price and rate-limit against.'
-    : '<b>Fully-loaded lens:</b> serving + training spread across clips + idle and reserved waste. This is the "does this actually make money?" number — about '+Math.round((LOADED.trainingAmort+LOADED.idleWaste)*100)+'% higher than marginal here.';
+    ? '<b>Marginal lens:</b> the cost to serve a clip plus the idle/reserved GPU capacity we pay for either way. This is the number to price and rate-limit against.'
+    : '<b>Fully-loaded lens:</b> the marginal cost plus amortized training. This is the "does this actually make money?" number — about '+up+'% higher than marginal here.';
 }
 
 function renderKPIs(){
@@ -528,7 +529,7 @@ function renderKPIs(){
     {label:'Blended cost / generation', val:fmtC(bCost), delta:lens==='loaded'?'fully-loaded':'marginal', cls:'flat', ic:'gauge', tint:'var(--accent)'},
     {label:'Gross margin / generation', val:fmtPct(margin), delta:'blended — API clips ~8–11%', cls:'flat', ic:'percent', tint:'var(--good)'},
     {label:'Fleet utilization vs. allocation', val:fleetUtil+'%', delta:(alloc-fleetUtil)+' pts idle', cls:'up', ic:'cpu', tint:'var(--warn)'},
-    {label:'Idle GPU-hrs reclaimed (mo)', val:'18,400', delta:'+$31k saved', cls:'down', ic:'recycle', tint:'var(--good)'},
+    {label:'Idle GPU-hrs reclaimed (mo)', val:'165,000', delta:'+$280k saved', cls:'down', ic:'recycle', tint:'var(--good)'},
     {label:'External-model spend share', val:fmtPct(apiSpendShare), delta:apiGenShare+'% of generations', cls:'up', ic:'shuffle', tint:'var(--bad)'},
   ];
   document.getElementById('kpis').innerHTML = k.map((x,i)=>`
@@ -555,7 +556,7 @@ function renderSourcing(){
     const cost = s.costClip*(s.kind==='own'?loadedMult():1);
     const margin = (s.revClip-cost)/s.revClip*100;
     const mcls = margin>40?'good':margin>20?'warn':'bad';
-    const note = s.kind==='own' ? (lens==='loaded' ? 'Now includes its training cost' : 'Cheap to run — no training in this lens') : s.note;
+    const note = s.kind==='own' ? (lens==='loaded' ? 'Now also carries training' : 'Serving + idle — no training yet') : s.note;
     return `<tr><td><span class="tag ${s.kind}">${s.kind==='own'?'Own':'API'}</span> ${s.model}</td>
     <td class="num">${s.share}%</td>
     <td class="num">${fmtC(cost)}</td>
@@ -575,8 +576,8 @@ function renderCPG(){
       <td><span class="tag ${r.kind}">${r.kind==='own'?'Own':'API'}</span> ${r.model}</td>
       <td>${r.res}</td>
       <td class="num">${r.credits}</td>
-      <td class="num">${fmt$(rev)}</td>
-      <td class="num">${fmt$(cost)}</td>
+      <td class="num">${fmtC(rev)}</td>
+      <td class="num">${fmtC(cost)}</td>
       <td class="num"><span class="pill ${cls}">${margin.toFixed(0)}%</span></td>
     </tr>`;
   }).join('');
@@ -667,7 +668,7 @@ function runSim(){
   const gensMo = dau*gpu*30;
   // cost basis matches the dashboard: own ~0.14/clip, blended API ~0.67; resolution
   // scales both; distillation cuts own-model step cost only (API is pass-through).
-  const ownCost = 0.14*resPrem*(1-dist*0.45);
+  const ownCost = 0.14*loadedMult()*resPrem*(1-dist*0.45); // own carries idle (both lenses) + training (loaded)
   const apiCost = 0.67*resPrem;
   const costClip = ownCost*(1-apiShare) + apiCost*apiShare;
   const cogs = gensMo*costClip;
@@ -678,10 +679,10 @@ function runSim(){
   const out=[
     {l:'Generations / month', v:(gensMo/1e6).toFixed(1)+'M', x:`${dau.toLocaleString()} creators × ${gpu}/day`},
     {l:'Avg cost / generation', v:fmtC(costClip), x:`${(apiShare*100).toFixed(0)}% on API models`},
-    {l:'Monthly cost (COGS)', v:fmt$(cogs), x:'serving cost only'},
+    {l:'Monthly cost (COGS)', v:fmt$(cogs), x:lens==='loaded'?'serving + idle + training':'serving + idle'},
     {l:'Monthly revenue (est.)', v:fmt$(revenue), x:'from credits spent'},
   ];
-  const mcls = margin>40?'var(--good)':margin>20?'var(--warn)':'var(--bad)';
+  const mcls = margin>35?'var(--good)':margin>20?'var(--warn)':'var(--bad)';
   document.getElementById('simOut').innerHTML =
     `<div class="out-card hero"><div class="l">Projected gross margin</div>
        <div class="v" style="color:${mcls};font-size:30px">${margin.toFixed(0)}%</div>
@@ -701,14 +702,14 @@ function paintThemeBtn(){themeBtn.innerHTML=ic(isDark()?'sun':'moon')+'<span>'+(
 themeBtn.addEventListener('click',()=>{const d=!isDark();root.setAttribute('data-theme',d?'dark':'light');lsSet('cogs-theme',d?'dark':'light');paintThemeBtn();});
 paintThemeBtn();
 
-const secIcons=['eye','coin','layers','activity','sliders'];
+const secIcons=['eye','coin','layers','activity','sliders','book'];
 document.querySelectorAll('.sec-head h2').forEach((h,i)=>{if(secIcons[i])h.insertAdjacentHTML('afterbegin',ic(secIcons[i],'sec-ic'));});
 
 document.getElementById('lensToggle').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||!b.dataset.lens)return;
   lens=b.dataset.lens;
-  document.querySelectorAll('#lensToggle button').forEach(x=>x.classList.toggle('on',x.dataset.lens===lens));
-  renderAll();
+  document.querySelectorAll('#lensToggle button').forEach(x=>{const on=x.dataset.lens===lens;x.classList.toggle('on',on);x.setAttribute('aria-selected',on);});
+  renderAll();runSim(); // runSim too, so the simulator hero responds to the lens
 });
 ['dau','gpu','api','res','dist'].forEach(id=>document.getElementById(id).addEventListener('input',runSim));
 renderStatic();renderAll();runSim();
